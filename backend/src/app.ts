@@ -8,6 +8,7 @@ import { authRouter } from "./routes/auth.routes.js";
 import { databaseRouter } from "./routes/database.routes.js";
 import { deviceRouter } from "./routes/device.routes.js";
 import { healthRouter } from "./routes/health.routes.js";
+import { sensorReadingRouter } from "./routes/sensor-reading.routes.js";
 
 export const createApp = () => {
   const app = express();
@@ -24,6 +25,7 @@ export const createApp = () => {
   app.use("/api/v1/auth", authRouter);
   app.use("/api/v1/devices", deviceRouter);
   app.use("/api/v1/health", healthRouter);
+  app.use("/api/v1/sensor-readings", sensorReadingRouter);
   app.use("/api/v1/database", databaseRouter);
 
   app.use(notFoundMiddleware);
