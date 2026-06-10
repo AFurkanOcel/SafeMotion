@@ -1,5 +1,6 @@
 import { prisma } from "../config/database.js";
 import type { SensorReadingPayload, SensorReadingBatchInput, ListSensorReadingsInput } from "../schemas/sensor-reading.schemas.js";
+import { socketEvents } from "../sockets/socket.events.js";
 import { analyzeSensorReading, type DetectionStatus } from "./detection.service.js";
 import type { AuthDevice, AuthUser } from "../types/auth.js";
 import { AppError } from "../utils/app-error.js";
@@ -69,6 +70,16 @@ export const createSensorReading = async (device: AuthDevice, input: SensorReadi
       rotationMagnitude: true
     }
   });
+  socketEvents.sensorReadingCreated({
+    id: reading.id,
+    deviceId: reading.deviceId,
+    monitoredPersonId: reading.monitoredPersonId,
+    recordedAt: reading.recordedAt,
+    receivedAt: reading.receivedAt,
+    accelerationMagnitude: reading.accelerationMagnitude,
+    rotationMagnitude: reading.rotationMagnitude
+  });
+
   const detectionStatus = await analyzeSensorReading(reading);
 
   return {
@@ -96,6 +107,14 @@ export const createSensorReadingBatch = async (device: AuthDevice, input: Sensor
         accelerationMagnitude: true,
         rotationMagnitude: true
       }
+    });
+    socketEvents.sensorReadingCreated({
+      id: reading.id,
+      deviceId: reading.deviceId,
+      monitoredPersonId: reading.monitoredPersonId,
+      recordedAt: reading.recordedAt,
+      accelerationMagnitude: reading.accelerationMagnitude,
+      rotationMagnitude: reading.rotationMagnitude
     });
 
     latestDetectionStatus = await analyzeSensorReading(reading);

@@ -1,5 +1,6 @@
 import { prisma } from "../config/database.js";
 import type { CreateConfirmationResponseInput } from "../schemas/confirmation.schemas.js";
+import { socketEvents } from "../sockets/socket.events.js";
 import type { AuthDevice } from "../types/auth.js";
 import { AppError } from "../utils/app-error.js";
 import { createAlertForDetectionEvent } from "./alert.service.js";
@@ -51,6 +52,11 @@ export const createConfirmationResponse = async (device: AuthDevice, input: Crea
         resolvedAt: new Date()
       }
     });
+    socketEvents.detectionResolved({
+      detectionEventId: detectionEvent.id,
+      deviceId: detectionEvent.deviceId,
+      status: "SAFE_CONFIRMED"
+    });
 
     return {
       ...confirmationResponse,
@@ -71,6 +77,11 @@ export const createConfirmationResponse = async (device: AuthDevice, input: Crea
     severity: "CRITICAL",
     title: "Critical fall alert",
     message: "The monitored person requested help after a suspected fall."
+  });
+  socketEvents.detectionResolved({
+    detectionEventId: detectionEvent.id,
+    deviceId: detectionEvent.deviceId,
+    status: "ESCALATED"
   });
 
   return {
@@ -140,6 +151,11 @@ export const recordNoResponseAndEscalate = async (detectionEventId: string) => {
       status: "ESCALATED"
     }
   });
+  socketEvents.detectionResolved({
+    detectionEventId: detectionEvent.id,
+    deviceId: detectionEvent.deviceId,
+    status: "ESCALATED"
+  });
 
   return createAlertForDetectionEvent({
     monitoredPersonId: detectionEvent.monitoredPersonId,
@@ -149,4 +165,3 @@ export const recordNoResponseAndEscalate = async (detectionEventId: string) => {
     message: "No safety confirmation was received after a suspected fall."
   });
 };
-

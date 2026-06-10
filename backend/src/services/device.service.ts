@@ -1,4 +1,5 @@
 import { prisma } from "../config/database.js";
+import { socketEvents } from "../sockets/socket.events.js";
 import type { AuthDevice, AuthUser } from "../types/auth.js";
 import { AppError } from "../utils/app-error.js";
 import { createDeviceToken, createPairingCode, hashDeviceSecret } from "../utils/token.js";
@@ -103,6 +104,12 @@ export const pairDevice = async (input: PairDeviceInput) => {
       platform: true
     }
   });
+  socketEvents.deviceStatusUpdated({
+    deviceId: pairedDevice.id,
+    monitoredPersonId: pairedDevice.monitoredPersonId,
+    status: "PAIRED",
+    lastSeenAt: new Date()
+  });
 
   return {
     deviceId: pairedDevice.id,
@@ -166,11 +173,18 @@ export const getDeviceByToken = async (deviceToken: string) => {
     throw new AppError(401, "INVALID_DEVICE_TOKEN", "Device token is invalid");
   }
 
+  const lastSeenAt = new Date();
+
   await prisma.device.update({
     where: { id: device.id },
-    data: { lastSeenAt: new Date() }
+    data: { lastSeenAt }
+  });
+  socketEvents.deviceStatusUpdated({
+    deviceId: device.id,
+    monitoredPersonId: device.monitoredPersonId,
+    status: "ONLINE",
+    lastSeenAt
   });
 
   return toAuthDevice(device);
 };
-

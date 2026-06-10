@@ -1,5 +1,6 @@
 import { prisma } from "../config/database.js";
 import { detectionConfig } from "../config/detection.js";
+import { socketEvents } from "../sockets/socket.events.js";
 import { recordNoResponseAndEscalate } from "./confirmation.service.js";
 
 export type DetectionStatus = "NORMAL" | "FALL_SUSPECTED" | "INACTIVITY_DETECTED";
@@ -35,7 +36,7 @@ const isLowMovementReading = (reading: ReadingForAnalysis) => {
 };
 
 const createFallSuspectedEvent = async (reading: ReadingForAnalysis): Promise<DetectionStatus> => {
-  const inactivityEvent = await prisma.detectionEvent.create({
+  const detectionEvent = await prisma.detectionEvent.create({
     data: {
       monitoredPersonId: reading.monitoredPersonId,
       deviceId: reading.deviceId,
@@ -55,6 +56,11 @@ const createFallSuspectedEvent = async (reading: ReadingForAnalysis): Promise<De
       }
     }
   });
+  socketEvents.fallSuspected({
+    detectionEventId: detectionEvent.id,
+    deviceId: reading.deviceId,
+    monitoredPersonId: reading.monitoredPersonId
+  });
 
   return "FALL_SUSPECTED" satisfies DetectionStatus;
 };
@@ -64,7 +70,7 @@ const createInactivityEvent = async (
   fallEventId: string,
   fallStartedAt: Date
 ): Promise<DetectionStatus> => {
-  await prisma.detectionEvent.create({
+  const inactivityEvent = await prisma.detectionEvent.create({
     data: {
       monitoredPersonId: reading.monitoredPersonId,
       deviceId: reading.deviceId,
@@ -89,6 +95,12 @@ const createInactivityEvent = async (
   });
 
   await recordNoResponseAndEscalate(fallEventId);
+  socketEvents.inactivityDetected({
+    detectionEventId: inactivityEvent.id,
+    linkedFallEventId: fallEventId,
+    deviceId: reading.deviceId,
+    monitoredPersonId: reading.monitoredPersonId
+  });
 
   return "INACTIVITY_DETECTED" satisfies DetectionStatus;
 };

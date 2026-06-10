@@ -1,5 +1,6 @@
 import { prisma } from "../config/database.js";
 import type { AlertIdParamInput, ListAlertsInput, ResolveAlertInput } from "../schemas/alert.schemas.js";
+import { socketEvents } from "../sockets/socket.events.js";
 import type { AuthUser } from "../types/auth.js";
 import { AppError } from "../utils/app-error.js";
 
@@ -42,7 +43,7 @@ export const createAlertForDetectionEvent = async (input: AlertCreateInput) => {
     }
   }
 
-  return prisma.alert.create({
+  const alert = await prisma.alert.create({
     data: {
       monitoredPersonId: input.monitoredPersonId,
       detectionEventId: input.detectionEventId,
@@ -59,6 +60,9 @@ export const createAlertForDetectionEvent = async (input: AlertCreateInput) => {
       createdAt: true
     }
   });
+  socketEvents.alertCreated(alert);
+
+  return alert;
 };
 
 export const listAlerts = async (user: AuthUser, input: ListAlertsInput) => {
@@ -141,7 +145,7 @@ export const resolveAlert = async (user: AuthUser, input: ResolveAlertInput) => 
     throw new AppError(409, "ALERT_ALREADY_RESOLVED", "Alert is already resolved");
   }
 
-  return prisma.alert.update({
+  const resolvedAlert = await prisma.alert.update({
     where: { id: alert.id },
     data: {
       status: "RESOLVED",
@@ -157,5 +161,7 @@ export const resolveAlert = async (user: AuthUser, input: ResolveAlertInput) => 
       resolutionNote: true
     }
   });
-};
+  socketEvents.alertResolved(resolvedAlert);
 
+  return resolvedAlert;
+};
