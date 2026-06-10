@@ -7,5 +7,234 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Domain models will be added in the "Core data models" phase.
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  fullName     String   @map("full_name")
+  role         UserRole
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
+  caregiverMonitoredPersons MonitoredPerson[] @relation("CaregiverMonitoredPersons")
+  createdMonitoredPersons   MonitoredPerson[] @relation("CreatedMonitoredPersons")
+  resolvedAlerts            Alert[]           @relation("ResolvedAlerts")
+  systemLogs                SystemLog[]       @relation("UserSystemLogs")
+
+  @@index([role])
+  @@index([isActive])
+  @@map("users")
+}
+
+model MonitoredPerson {
+  id          String   @id @default(uuid()) @db.Uuid
+  displayName String   @map("display_name")
+  notes       String?
+  caregiverId String   @map("caregiver_id") @db.Uuid
+  createdById String   @map("created_by_id") @db.Uuid
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  caregiver             User                   @relation("CaregiverMonitoredPersons", fields: [caregiverId], references: [id])
+  createdBy             User                   @relation("CreatedMonitoredPersons", fields: [createdById], references: [id])
+  devices               Device[]
+  sensorReadings        SensorReading[]
+  detectionEvents       DetectionEvent[]
+  alerts                Alert[]
+
+  @@index([caregiverId])
+  @@index([createdById])
+  @@index([isActive])
+  @@map("monitored_persons")
+}
+
+model Device {
+  id                   String         @id @default(uuid()) @db.Uuid
+  monitoredPersonId    String         @map("monitored_person_id") @db.Uuid
+  deviceName           String         @map("device_name")
+  platform             DevicePlatform @default(UNKNOWN)
+  deviceTokenHash      String?        @unique @map("device_token_hash")
+  pairingCodeHash      String?        @map("pairing_code_hash")
+  pairingCodeExpiresAt DateTime?      @map("pairing_code_expires_at")
+  lastSeenAt           DateTime?      @map("last_seen_at")
+  isActive             Boolean        @default(true) @map("is_active")
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
+
+  monitoredPerson      MonitoredPerson       @relation(fields: [monitoredPersonId], references: [id])
+  sensorReadings       SensorReading[]
+  detectionEvents      DetectionEvent[]
+  confirmationResponses ConfirmationResponse[]
+  systemLogs           SystemLog[]           @relation("DeviceSystemLogs")
+
+  @@index([monitoredPersonId])
+  @@index([lastSeenAt])
+  @@index([isActive])
+  @@map("devices")
+}
+
+model SensorReading {
+  id                    String   @id @default(uuid()) @db.Uuid
+  deviceId              String   @map("device_id") @db.Uuid
+  monitoredPersonId     String   @map("monitored_person_id") @db.Uuid
+  recordedAt            DateTime @map("recorded_at")
+  receivedAt            DateTime @default(now()) @map("received_at")
+  accelerometerX        Float    @map("accelerometer_x")
+  accelerometerY        Float    @map("accelerometer_y")
+  accelerometerZ        Float    @map("accelerometer_z")
+  gyroscopeX            Float    @map("gyroscope_x")
+  gyroscopeY            Float    @map("gyroscope_y")
+  gyroscopeZ            Float    @map("gyroscope_z")
+  accelerationMagnitude Float?   @map("acceleration_magnitude")
+  rotationMagnitude     Float?   @map("rotation_magnitude")
+
+  device                 Device           @relation(fields: [deviceId], references: [id])
+  monitoredPerson        MonitoredPerson  @relation(fields: [monitoredPersonId], references: [id])
+  triggeredDetectionEvents DetectionEvent[] @relation("TriggerReading")
+
+  @@index([deviceId, recordedAt])
+  @@index([monitoredPersonId, recordedAt])
+  @@index([receivedAt])
+  @@map("sensor_readings")
+}
+
+model DetectionEvent {
+  id                String               @id @default(uuid()) @db.Uuid
+  monitoredPersonId String               @map("monitored_person_id") @db.Uuid
+  deviceId          String               @map("device_id") @db.Uuid
+  triggerReadingId  String?              @map("trigger_reading_id") @db.Uuid
+  type              DetectionEventType
+  status            DetectionEventStatus @default(OPEN)
+  severity          Severity             @default(LOW)
+  startedAt         DateTime             @map("started_at")
+  resolvedAt        DateTime?            @map("resolved_at")
+  metadata          Json?
+  createdAt         DateTime             @default(now()) @map("created_at")
+  updatedAt         DateTime             @updatedAt @map("updated_at")
+
+  monitoredPerson       MonitoredPerson        @relation(fields: [monitoredPersonId], references: [id])
+  device                Device                 @relation(fields: [deviceId], references: [id])
+  triggerReading        SensorReading?         @relation("TriggerReading", fields: [triggerReadingId], references: [id])
+  alert                 Alert?
+  confirmationResponses ConfirmationResponse[]
+
+  @@index([monitoredPersonId])
+  @@index([deviceId])
+  @@index([triggerReadingId])
+  @@index([type])
+  @@index([status])
+  @@index([monitoredPersonId, startedAt])
+  @@map("detection_events")
+}
+
+model Alert {
+  id                String      @id @default(uuid()) @db.Uuid
+  monitoredPersonId String      @map("monitored_person_id") @db.Uuid
+  detectionEventId  String?     @unique @map("detection_event_id") @db.Uuid
+  status            AlertStatus @default(ACTIVE)
+  severity          Severity
+  title             String
+  message           String
+  createdAt         DateTime    @default(now()) @map("created_at")
+  resolvedAt        DateTime?   @map("resolved_at")
+  resolvedById      String?     @map("resolved_by_id") @db.Uuid
+  resolutionNote    String?     @map("resolution_note")
+
+  monitoredPerson MonitoredPerson @relation(fields: [monitoredPersonId], references: [id])
+  detectionEvent  DetectionEvent? @relation(fields: [detectionEventId], references: [id])
+  resolvedBy      User?           @relation("ResolvedAlerts", fields: [resolvedById], references: [id])
+
+  @@index([status])
+  @@index([severity])
+  @@index([monitoredPersonId, createdAt])
+  @@index([resolvedById])
+  @@map("alerts")
+}
+
+model ConfirmationResponse {
+  id               String               @id @default(uuid()) @db.Uuid
+  detectionEventId String               @map("detection_event_id") @db.Uuid
+  deviceId         String               @map("device_id") @db.Uuid
+  response         ConfirmationResponseType
+  respondedAt      DateTime             @map("responded_at")
+  createdAt        DateTime             @default(now()) @map("created_at")
+
+  detectionEvent DetectionEvent @relation(fields: [detectionEventId], references: [id])
+  device         Device         @relation(fields: [deviceId], references: [id])
+
+  @@index([detectionEventId])
+  @@index([deviceId])
+  @@index([respondedAt])
+  @@map("confirmation_responses")
+}
+
+model SystemLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  actorUserId String?  @map("actor_user_id") @db.Uuid
+  deviceId    String?  @map("device_id") @db.Uuid
+  action      String
+  entityType  String?  @map("entity_type")
+  entityId    String?  @map("entity_id") @db.Uuid
+  level       LogLevel @default(INFO)
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  actorUser User?   @relation("UserSystemLogs", fields: [actorUserId], references: [id])
+  device    Device? @relation("DeviceSystemLogs", fields: [deviceId], references: [id])
+
+  @@index([actorUserId])
+  @@index([deviceId])
+  @@index([action])
+  @@index([level])
+  @@index([createdAt])
+  @@map("system_logs")
+}
+
+enum UserRole {
+  ADMIN
+  CAREGIVER
+}
+
+enum DevicePlatform {
+  IOS
+  ANDROID
+  UNKNOWN
+}
+
+enum DetectionEventType {
+  FALL_SUSPECTED
+  INACTIVITY_DETECTED
+}
+
+enum DetectionEventStatus {
+  OPEN
+  SAFE_CONFIRMED
+  ESCALATED
+  DISMISSED
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AlertStatus {
+  ACTIVE
+  RESOLVED
+}
+
+enum ConfirmationResponseType {
+  SAFE
+  NEEDS_HELP
+  NO_RESPONSE
+}
+
+enum LogLevel {
+  INFO
+  WARN
+  ERROR
+}
