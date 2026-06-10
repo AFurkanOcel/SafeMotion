@@ -1,5 +1,6 @@
 import { Router } from "express";
 
+import { getActiveConfirmation } from "../controllers/confirmation.controller.js";
 import { createPairingCode, getCurrentDevice, getStatus, pair } from "../controllers/device.controller.js";
 import { requireAuth, requireRoles } from "../middleware/auth.middleware.js";
 import { requireDeviceToken } from "../middleware/device-auth.middleware.js";
@@ -18,6 +19,6 @@ deviceRouter.post(
 );
 
 deviceRouter.post("/pair", validate(pairDeviceSchema), asyncHandler(pair));
+deviceRouter.get("/me/active-confirmation", requireDeviceToken, asyncHandler(getActiveConfirmation));
 deviceRouter.get("/me", requireDeviceToken, getCurrentDevice);
 deviceRouter.get("/:id/status", requireAuth, validate(deviceIdParamSchema), asyncHandler(getStatus));
-

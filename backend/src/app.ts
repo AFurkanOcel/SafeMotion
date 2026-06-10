@@ -4,7 +4,9 @@ import helmet from "helmet";
 
 import { env } from "./config/env.js";
 import { errorMiddleware, notFoundMiddleware } from "./middleware/error.middleware.js";
+import { alertRouter } from "./routes/alert.routes.js";
 import { authRouter } from "./routes/auth.routes.js";
+import { confirmationRouter } from "./routes/confirmation.routes.js";
 import { databaseRouter } from "./routes/database.routes.js";
 import { deviceRouter } from "./routes/device.routes.js";
 import { healthRouter } from "./routes/health.routes.js";
@@ -22,7 +24,9 @@ export const createApp = () => {
   );
   app.use(express.json({ limit: "1mb" }));
 
+  app.use("/api/v1/alerts", alertRouter);
   app.use("/api/v1/auth", authRouter);
+  app.use("/api/v1/confirmation-responses", confirmationRouter);
   app.use("/api/v1/devices", deviceRouter);
   app.use("/api/v1/health", healthRouter);
   app.use("/api/v1/sensor-readings", sensorReadingRouter);
