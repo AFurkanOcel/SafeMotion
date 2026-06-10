@@ -1,5 +1,6 @@
 import { prisma } from "../config/database.js";
 import type { SensorReadingPayload, SensorReadingBatchInput, ListSensorReadingsInput } from "../schemas/sensor-reading.schemas.js";
+import { analyzeSensorReading, type DetectionStatus } from "./detection.service.js";
 import type { AuthDevice, AuthUser } from "../types/auth.js";
 import { AppError } from "../utils/app-error.js";
 
@@ -60,17 +61,20 @@ export const createSensorReading = async (device: AuthDevice, input: SensorReadi
     data: createReadingData(device, input),
     select: {
       id: true,
+      deviceId: true,
+      monitoredPersonId: true,
       recordedAt: true,
       receivedAt: true,
       accelerationMagnitude: true,
       rotationMagnitude: true
     }
   });
+  const detectionStatus = await analyzeSensorReading(reading);
 
   return {
     id: reading.id,
     status: "ACCEPTED",
-    detectionStatus: "NORMAL",
+    detectionStatus,
     recordedAt: reading.recordedAt,
     receivedAt: reading.receivedAt,
     accelerationMagnitude: reading.accelerationMagnitude,
@@ -79,15 +83,28 @@ export const createSensorReading = async (device: AuthDevice, input: SensorReadi
 };
 
 export const createSensorReadingBatch = async (device: AuthDevice, input: SensorReadingBatchInput) => {
-  const data = input.readings.map((reading) => createReadingData(device, reading));
+  let latestDetectionStatus: DetectionStatus = "NORMAL";
 
-  await prisma.sensorReading.createMany({
-    data
-  });
+  for (const readingInput of input.readings) {
+    const reading = await prisma.sensorReading.create({
+      data: createReadingData(device, readingInput),
+      select: {
+        id: true,
+        deviceId: true,
+        monitoredPersonId: true,
+        recordedAt: true,
+        accelerationMagnitude: true,
+        rotationMagnitude: true
+      }
+    });
+
+    latestDetectionStatus = await analyzeSensorReading(reading);
+  }
 
   return {
-    accepted: data.length,
-    rejected: 0
+    accepted: input.readings.length,
+    rejected: 0,
+    detectionStatus: latestDetectionStatus
   };
 };
 
@@ -126,4 +143,3 @@ export const listSensorReadings = async (user: AuthUser, input: ListSensorReadin
     items: readings
   };
 };
-
