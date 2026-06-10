@@ -4,6 +4,7 @@ import helmet from "helmet";
 
 import { env } from "./config/env.js";
 import { errorMiddleware, notFoundMiddleware } from "./middleware/error.middleware.js";
+import { authRouter } from "./routes/auth.routes.js";
 import { databaseRouter } from "./routes/database.routes.js";
 import { healthRouter } from "./routes/health.routes.js";
 
@@ -19,6 +20,7 @@ export const createApp = () => {
   );
   app.use(express.json({ limit: "1mb" }));
 
+  app.use("/api/v1/auth", authRouter);
   app.use("/api/v1/health", healthRouter);
   app.use("/api/v1/database", databaseRouter);
 
