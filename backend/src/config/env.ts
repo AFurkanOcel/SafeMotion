@@ -15,5 +15,6 @@ export const env = {
   port: parsePort(process.env.PORT),
   corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:5173",
   jwtSecret: process.env.JWT_SECRET ?? "development-only-secret",
-  jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "1d"
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "1d",
+  deviceTokenSecret: process.env.DEVICE_TOKEN_SECRET ?? "development-only-device-token-secret"
 };

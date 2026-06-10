@@ -70,6 +70,7 @@ model Device {
   systemLogs           SystemLog[]           @relation("DeviceSystemLogs")
 
   @@index([monitoredPersonId])
+  @@index([pairingCodeHash])
   @@index([lastSeenAt])
   @@index([isActive])
   @@map("devices")

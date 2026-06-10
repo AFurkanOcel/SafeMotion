@@ -11,3 +11,10 @@ export type JwtPayload = {
   sub: string;
   role: UserRole;
 };
+
+export type AuthDevice = {
+  id: string;
+  monitoredPersonId: string;
+  deviceName: string;
+  platform: "IOS" | "ANDROID" | "UNKNOWN";
+};
