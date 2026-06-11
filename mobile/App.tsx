@@ -18,6 +18,7 @@ import {
 
 import { getActiveConfirmation, submitConfirmationResponse } from "./src/api/confirmationApi";
 import { pairDevice } from "./src/api/deviceApi";
+import { getBackendHealth } from "./src/api/healthApi";
 import { uploadSensorReading } from "./src/api/sensorApi";
 import { appConfig } from "./src/config/appConfig";
 import { clearDeviceSession, loadDeviceSession, saveDeviceSession } from "./src/storage/deviceSession";
@@ -29,6 +30,8 @@ const SENSOR_UPDATE_INTERVAL_MS = 500;
 const SENSOR_UPLOAD_INTERVAL_MS = 2_000;
 const CONFIRMATION_POLL_INTERVAL_MS = 3_000;
 const APP_ICON = require("./assets/safemotion.png");
+
+type ConnectionState = "checking" | "online" | "offline";
 
 const emptyVector: MotionVector = {
   x: 0,
@@ -43,6 +46,8 @@ export default function App() {
   const [pairingCode, setPairingCode] = useState("");
   const [session, setSession] = useState<StoredDeviceSession | null>(null);
   const [status, setStatus] = useState("Ready to pair");
+  const [connectionState, setConnectionState] = useState<ConnectionState>("checking");
+  const [connectionMessage, setConnectionMessage] = useState("Checking backend connection");
   const [isLoading, setIsLoading] = useState(true);
   const [isPairing, setIsPairing] = useState(false);
   const [isMonitoring, setIsMonitoring] = useState(false);
@@ -64,6 +69,24 @@ export default function App() {
     };
 
     void restoreSession();
+  }, []);
+
+  const checkBackendConnection = async () => {
+    setConnectionState("checking");
+    setConnectionMessage("Checking backend connection");
+
+    try {
+      const health = await getBackendHealth();
+      setConnectionState("online");
+      setConnectionMessage(`${health.service} online`);
+    } catch (error) {
+      setConnectionState("offline");
+      setConnectionMessage(error instanceof Error ? error.message : "Backend connection failed");
+    }
+  };
+
+  useEffect(() => {
+    void checkBackendConnection();
   }, []);
 
   useEffect(() => {
@@ -259,6 +282,28 @@ export default function App() {
             </Text>
           </View>
 
+          <View style={styles.connectionPanel}>
+            <View style={styles.connectionHeader}>
+              <View style={[styles.connectionDot, styles[`connectionDot_${connectionState}`]]} />
+              <Text style={styles.connectionTitle}>
+                {connectionState === "online"
+                  ? "Backend online"
+                  : connectionState === "checking"
+                    ? "Checking backend"
+                    : "Backend offline"}
+              </Text>
+            </View>
+            <Text style={styles.description}>{connectionMessage}</Text>
+            {appConfig.usesLocalhost ? (
+              <Text style={styles.warningText}>
+                Physical phones need your computer LAN IP instead of localhost.
+              </Text>
+            ) : null}
+            <Pressable style={styles.secondaryButton} onPress={() => void checkBackendConnection()}>
+              <Text style={styles.secondaryButtonText}>Check connection</Text>
+            </Pressable>
+          </View>
+
           {session ? (
             <View style={styles.infoGrid}>
               {activeConfirmation ? (
@@ -418,6 +463,44 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 18,
     backgroundColor: "#ffffff"
+  },
+  connectionPanel: {
+    borderWidth: 1,
+    borderColor: "#d7e5f2",
+    borderRadius: 8,
+    gap: 10,
+    padding: 18,
+    backgroundColor: "#ffffff"
+  },
+  connectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8
+  },
+  connectionDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 999
+  },
+  connectionDot_checking: {
+    backgroundColor: "#f6c76f"
+  },
+  connectionDot_online: {
+    backgroundColor: "#16a34a"
+  },
+  connectionDot_offline: {
+    backgroundColor: "#b42318"
+  },
+  connectionTitle: {
+    color: "#172033",
+    fontSize: 16,
+    fontWeight: "800"
+  },
+  warningText: {
+    color: "#8a4b05",
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 20
   },
   title: {
     marginBottom: 8,
