@@ -14,15 +14,18 @@ import {
   View
 } from "react-native";
 
+import { getActiveConfirmation, submitConfirmationResponse } from "./src/api/confirmationApi";
 import { pairDevice } from "./src/api/deviceApi";
 import { uploadSensorReading } from "./src/api/sensorApi";
 import { appConfig } from "./src/config/appConfig";
 import { clearDeviceSession, loadDeviceSession, saveDeviceSession } from "./src/storage/deviceSession";
+import type { ActiveConfirmationRequest, ConfirmationResponseType } from "./src/types/confirmation";
 import type { StoredDeviceSession } from "./src/types/device";
 import type { MotionVector, SensorReadingResponse } from "./src/types/sensorReading";
 
 const SENSOR_UPDATE_INTERVAL_MS = 500;
 const SENSOR_UPLOAD_INTERVAL_MS = 2_000;
+const CONFIRMATION_POLL_INTERVAL_MS = 3_000;
 
 const emptyVector: MotionVector = {
   x: 0,
@@ -40,9 +43,11 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isPairing, setIsPairing] = useState(false);
   const [isMonitoring, setIsMonitoring] = useState(false);
+  const [isResponding, setIsResponding] = useState(false);
   const [accelerometer, setAccelerometer] = useState<MotionVector>(emptyVector);
   const [gyroscope, setGyroscope] = useState<MotionVector>(emptyVector);
   const [latestUpload, setLatestUpload] = useState<SensorReadingResponse | null>(null);
+  const [activeConfirmation, setActiveConfirmation] = useState<ActiveConfirmationRequest | null>(null);
   const latestAccelerometerRef = useRef<MotionVector>(emptyVector);
   const latestGyroscopeRef = useRef<MotionVector>(emptyVector);
   const uploadTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -57,6 +62,30 @@ export default function App() {
 
     void restoreSession();
   }, []);
+
+  useEffect(() => {
+    if (!session) {
+      return undefined;
+    }
+
+    const refreshConfirmation = async () => {
+      try {
+        const confirmation = await getActiveConfirmation(session.deviceToken);
+        setActiveConfirmation(confirmation);
+      } catch (error) {
+        setStatus(error instanceof Error ? error.message : "Confirmation check failed");
+      }
+    };
+
+    void refreshConfirmation();
+    const timer = setInterval(() => {
+      void refreshConfirmation();
+    }, CONFIRMATION_POLL_INTERVAL_MS);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, [session]);
 
   useEffect(() => {
     if (!isMonitoring || !session) {
@@ -99,6 +128,12 @@ export default function App() {
         .then((result) => {
           setLatestUpload(result);
           setStatus(`Upload accepted: ${result.detectionStatus}`);
+
+          if (result.detectionStatus === "FALL_SUSPECTED") {
+            void getActiveConfirmation(session.deviceToken)
+              .then((confirmation) => setActiveConfirmation(confirmation))
+              .catch(() => undefined);
+          }
         })
         .catch((error) => {
           setStatus(error instanceof Error ? error.message : "Sensor upload failed");
@@ -154,6 +189,7 @@ export default function App() {
     await clearDeviceSession();
     setSession(null);
     setLatestUpload(null);
+    setActiveConfirmation(null);
     setStatus("Ready to pair");
   };
 
@@ -163,6 +199,27 @@ export default function App() {
     }
 
     setIsMonitoring((current) => !current);
+  };
+
+  const handleConfirmationResponse = async (responseType: ConfirmationResponseType) => {
+    if (!session || !activeConfirmation) {
+      return;
+    }
+
+    setIsResponding(true);
+
+    try {
+      const result = await submitConfirmationResponse(session.deviceToken, activeConfirmation.detectionEventId, responseType);
+      setActiveConfirmation(null);
+      setStatus(`Confirmation submitted: ${result.status}`);
+      Alert.alert("Confirmation sent", responseType === "SAFE" ? "Your safe response was submitted." : "Help request was submitted.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Confirmation response failed";
+      setStatus(message);
+      Alert.alert("Confirmation failed", message);
+    } finally {
+      setIsResponding(false);
+    }
   };
 
   if (isLoading) {
@@ -197,6 +254,29 @@ export default function App() {
 
         {session ? (
           <View style={styles.infoGrid}>
+            {activeConfirmation ? (
+              <View style={styles.confirmationPanel}>
+                <Text style={styles.confirmationTitle}>{activeConfirmation.message}</Text>
+                <Text style={styles.confirmationText}>Severity: {activeConfirmation.severity}</Text>
+                <View style={styles.confirmationActions}>
+                  <Pressable
+                    style={[styles.safeButton, isResponding && styles.disabledButton]}
+                    onPress={() => void handleConfirmationResponse("SAFE")}
+                    disabled={isResponding}
+                  >
+                    <Text style={styles.primaryButtonText}>I'm safe</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.dangerButton, isResponding && styles.disabledButton]}
+                    onPress={() => void handleConfirmationResponse("NEEDS_HELP")}
+                    disabled={isResponding}
+                  >
+                    <Text style={styles.primaryButtonText}>Need help</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : null}
+
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Device ID</Text>
               <Text style={styles.infoValue}>{session.deviceId}</Text>
@@ -373,6 +453,36 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     backgroundColor: "#b42318"
   },
+  safeButton: {
+    flex: 1,
+    alignItems: "center",
+    borderRadius: 8,
+    paddingVertical: 14,
+    backgroundColor: "#15735d"
+  },
+  confirmationPanel: {
+    borderWidth: 1,
+    borderColor: "#f6c76f",
+    borderRadius: 8,
+    padding: 18,
+    backgroundColor: "#fff7e6"
+  },
+  confirmationTitle: {
+    marginBottom: 8,
+    color: "#17202a",
+    fontSize: 24,
+    fontWeight: "900"
+  },
+  confirmationText: {
+    marginBottom: 14,
+    color: "#5c4420",
+    fontSize: 15,
+    fontWeight: "700"
+  },
+  confirmationActions: {
+    flexDirection: "row",
+    gap: 10
+  },
   secondaryButton: {
     alignItems: "center",
     borderWidth: 1,
@@ -412,3 +522,4 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   }
 });
+
