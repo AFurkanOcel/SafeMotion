@@ -1,5 +1,6 @@
+import { Accelerometer, Gyroscope } from "expo-sensors";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -14,9 +15,23 @@ import {
 } from "react-native";
 
 import { pairDevice } from "./src/api/deviceApi";
+import { uploadSensorReading } from "./src/api/sensorApi";
 import { appConfig } from "./src/config/appConfig";
 import { clearDeviceSession, loadDeviceSession, saveDeviceSession } from "./src/storage/deviceSession";
 import type { StoredDeviceSession } from "./src/types/device";
+import type { MotionVector, SensorReadingResponse } from "./src/types/sensorReading";
+
+const SENSOR_UPDATE_INTERVAL_MS = 500;
+const SENSOR_UPLOAD_INTERVAL_MS = 2_000;
+
+const emptyVector: MotionVector = {
+  x: 0,
+  y: 0,
+  z: 0
+};
+
+const formatVector = (vector: MotionVector) =>
+  `x ${vector.x.toFixed(2)}  y ${vector.y.toFixed(2)}  z ${vector.z.toFixed(2)}`;
 
 export default function App() {
   const [pairingCode, setPairingCode] = useState("");
@@ -24,6 +39,13 @@ export default function App() {
   const [status, setStatus] = useState("Ready to pair");
   const [isLoading, setIsLoading] = useState(true);
   const [isPairing, setIsPairing] = useState(false);
+  const [isMonitoring, setIsMonitoring] = useState(false);
+  const [accelerometer, setAccelerometer] = useState<MotionVector>(emptyVector);
+  const [gyroscope, setGyroscope] = useState<MotionVector>(emptyVector);
+  const [latestUpload, setLatestUpload] = useState<SensorReadingResponse | null>(null);
+  const latestAccelerometerRef = useRef<MotionVector>(emptyVector);
+  const latestGyroscopeRef = useRef<MotionVector>(emptyVector);
+  const uploadTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const restoreSession = async () => {
@@ -35,6 +57,66 @@ export default function App() {
 
     void restoreSession();
   }, []);
+
+  useEffect(() => {
+    if (!isMonitoring || !session) {
+      return undefined;
+    }
+
+    Accelerometer.setUpdateInterval(SENSOR_UPDATE_INTERVAL_MS);
+    Gyroscope.setUpdateInterval(SENSOR_UPDATE_INTERVAL_MS);
+
+    const accelerometerSubscription = Accelerometer.addListener((reading) => {
+      const nextReading = {
+        x: reading.x,
+        y: reading.y,
+        z: reading.z
+      };
+
+      latestAccelerometerRef.current = nextReading;
+      setAccelerometer(nextReading);
+    });
+
+    const gyroscopeSubscription = Gyroscope.addListener((reading) => {
+      const nextReading = {
+        x: reading.x,
+        y: reading.y,
+        z: reading.z
+      };
+
+      latestGyroscopeRef.current = nextReading;
+      setGyroscope(nextReading);
+    });
+
+    uploadTimerRef.current = setInterval(() => {
+      const payload = {
+        recordedAt: new Date().toISOString(),
+        accelerometer: latestAccelerometerRef.current,
+        gyroscope: latestGyroscopeRef.current
+      };
+
+      void uploadSensorReading(session.deviceToken, payload)
+        .then((result) => {
+          setLatestUpload(result);
+          setStatus(`Upload accepted: ${result.detectionStatus}`);
+        })
+        .catch((error) => {
+          setStatus(error instanceof Error ? error.message : "Sensor upload failed");
+        });
+    }, SENSOR_UPLOAD_INTERVAL_MS);
+
+    setStatus("Monitoring started");
+
+    return () => {
+      accelerometerSubscription.remove();
+      gyroscopeSubscription.remove();
+
+      if (uploadTimerRef.current) {
+        clearInterval(uploadTimerRef.current);
+        uploadTimerRef.current = null;
+      }
+    };
+  }, [isMonitoring, session]);
 
   const handlePair = async () => {
     const normalizedCode = pairingCode.trim();
@@ -68,9 +150,19 @@ export default function App() {
   };
 
   const handleReset = async () => {
+    setIsMonitoring(false);
     await clearDeviceSession();
     setSession(null);
+    setLatestUpload(null);
     setStatus("Ready to pair");
+  };
+
+  const toggleMonitoring = () => {
+    if (!session) {
+      return;
+    }
+
+    setIsMonitoring((current) => !current);
   };
 
   if (isLoading) {
@@ -116,6 +208,33 @@ export default function App() {
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Paired at</Text>
               <Text style={styles.infoValue}>{new Date(session.pairedAt).toLocaleString()}</Text>
+            </View>
+            <View style={styles.panel}>
+              <Text style={styles.sectionTitle}>Motion upload</Text>
+              <Text style={styles.description}>
+                {isMonitoring
+                  ? "Accelerometer and gyroscope readings are being uploaded to the backend."
+                  : "Start monitoring to upload live motion readings with the device token."}
+              </Text>
+              <Pressable style={isMonitoring ? styles.dangerButton : styles.primaryButton} onPress={toggleMonitoring}>
+                <Text style={styles.primaryButtonText}>{isMonitoring ? "Stop monitoring" : "Start monitoring"}</Text>
+              </Pressable>
+            </View>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Accelerometer</Text>
+              <Text style={styles.infoValue}>{formatVector(accelerometer)}</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Gyroscope</Text>
+              <Text style={styles.infoValue}>{formatVector(gyroscope)}</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Latest upload</Text>
+              <Text style={styles.infoValue}>
+                {latestUpload
+                  ? `${latestUpload.detectionStatus} at ${new Date(latestUpload.receivedAt).toLocaleTimeString()}`
+                  : "No upload yet"}
+              </Text>
             </View>
             <Pressable style={styles.secondaryButton} onPress={handleReset}>
               <Text style={styles.secondaryButtonText}>Reset pairing</Text>
@@ -204,6 +323,12 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "800"
   },
+  sectionTitle: {
+    marginBottom: 8,
+    color: "#17202a",
+    fontSize: 18,
+    fontWeight: "800"
+  },
   description: {
     color: "#405650",
     fontSize: 16,
@@ -241,6 +366,12 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "800"
+  },
+  dangerButton: {
+    alignItems: "center",
+    borderRadius: 8,
+    paddingVertical: 14,
+    backgroundColor: "#b42318"
   },
   secondaryButton: {
     alignItems: "center",
@@ -281,4 +412,3 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   }
 });
-
