@@ -81,7 +81,9 @@ export const App = () => {
   const [statusMessage, setStatusMessage] = useState("Ready");
   const { events, isConnected } = useDashboardSocket(token);
 
-  const activeAlertCount = useMemo(() => alerts.filter((alert) => alert.status === "ACTIVE").length, [alerts]);
+  const activeAlerts = useMemo(() => alerts.filter((alert) => alert.status === "ACTIVE"), [alerts]);
+  const activeAlertCount = activeAlerts.length;
+  const latestActiveAlert = activeAlerts[0] ?? null;
   const latestReading = readings[0];
   const selectedMonitoredPerson = monitoredPersons.find((person) => person.id === selectedMonitoredPersonId) ?? null;
   const latestReadingLabel = latestReading ? formatTime(latestReading.receivedAt) : "Waiting";
@@ -174,6 +176,7 @@ export const App = () => {
     const alertEvent = events.find((event) => event.name === "alert.created" || event.name === "alert.resolved");
 
     if (alertEvent && token) {
+      setStatusMessage(alertEvent.name === "alert.created" ? "New alert received" : "Alert update received");
       void refreshAlerts().catch(() => undefined);
     }
   }, [events, token]);
@@ -454,6 +457,20 @@ export const App = () => {
           </div>
         </section>
 
+        {latestActiveAlert ? (
+          <section className={`alert-banner alert-${latestActiveAlert.severity.toLowerCase()}`} aria-live="polite">
+            <AlertTriangle aria-hidden="true" />
+            <div>
+              <p className="eyebrow">Active alert</p>
+              <h2>{latestActiveAlert.title}</h2>
+              <span>{latestActiveAlert.message}</span>
+            </div>
+            <button type="button" onClick={() => void handleResolveAlert(latestActiveAlert.id)}>
+              Resolve alert
+            </button>
+          </section>
+        ) : null}
+
         <section className="people-layout" id="people">
           <div className="panel">
             <div className="panel-header">
@@ -688,10 +705,17 @@ export const App = () => {
               <tbody>
                 {alerts.length ? (
                   alerts.map((alert) => (
-                    <tr key={alert.id}>
-                      <td>{alert.severity}</td>
-                      <td>{alert.status}</td>
-                      <td>{alert.title}</td>
+                    <tr key={alert.id} className={alert.status === "ACTIVE" ? "active-alert-row" : ""}>
+                      <td>
+                        <span className={`table-badge severity-${alert.severity.toLowerCase()}`}>{alert.severity}</span>
+                      </td>
+                      <td>
+                        <span className={`table-badge status-${alert.status.toLowerCase()}`}>{alert.status}</span>
+                      </td>
+                      <td>
+                        <strong>{alert.title}</strong>
+                        <small>{alert.message}</small>
+                      </td>
                       <td>{formatTime(alert.createdAt)}</td>
                       <td>
                         <button

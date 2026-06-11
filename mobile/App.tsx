@@ -57,6 +57,7 @@ export default function App() {
   const [gyroscope, setGyroscope] = useState<MotionVector>(emptyVector);
   const [latestUpload, setLatestUpload] = useState<SensorReadingResponse | null>(null);
   const [activeConfirmation, setActiveConfirmation] = useState<ActiveConfirmationRequest | null>(null);
+  const [lastConfirmationAction, setLastConfirmationAction] = useState("No confirmation response sent yet");
   const latestAccelerometerRef = useRef<MotionVector>(emptyVector);
   const latestGyroscopeRef = useRef<MotionVector>(emptyVector);
   const uploadTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -238,6 +239,7 @@ export default function App() {
     try {
       const result = await submitConfirmationResponse(session.deviceToken, activeConfirmation.detectionEventId, responseType);
       setActiveConfirmation(null);
+      setLastConfirmationAction(responseType === "SAFE" ? "Safe response sent" : "Help request sent");
       setStatus(`Confirmation submitted: ${result.status}`);
       Alert.alert("Confirmation sent", responseType === "SAFE" ? "Your safe response was submitted." : "Help request was submitted.");
     } catch (error) {
@@ -350,7 +352,9 @@ export default function App() {
             <View style={styles.infoGrid}>
               {activeConfirmation ? (
                 <View style={styles.confirmationPanel}>
-                  <Text style={styles.confirmationTitle}>{activeConfirmation.message}</Text>
+                  <Text style={styles.confirmationKicker}>Fall confirmation required</Text>
+                  <Text style={styles.confirmationTitle}>Are you okay?</Text>
+                  <Text style={styles.confirmationMessage}>{activeConfirmation.message}</Text>
                   <Text style={styles.confirmationText}>Severity: {activeConfirmation.severity}</Text>
                   <View style={styles.confirmationActions}>
                     <Pressable
@@ -369,7 +373,12 @@ export default function App() {
                     </Pressable>
                   </View>
                 </View>
-              ) : null}
+              ) : (
+                <View style={styles.confirmationStatusPanel}>
+                  <Text style={styles.infoLabel}>Confirmation status</Text>
+                  <Text style={styles.infoValue}>{lastConfirmationAction}</Text>
+                </View>
+              )}
 
               <View style={styles.infoItem}>
                 <Text style={styles.infoLabel}>Device ID</Text>
@@ -630,20 +639,30 @@ const styles = StyleSheet.create({
   },
   confirmationPanel: {
     borderWidth: 1,
-    borderColor: "#f6c76f",
+    borderColor: "#f2a19b",
     borderRadius: 8,
+    gap: 8,
     padding: 18,
-    backgroundColor: "#fff7e6"
+    backgroundColor: "#fff1f0"
+  },
+  confirmationKicker: {
+    color: "#b42318",
+    fontSize: 12,
+    fontWeight: "900",
+    textTransform: "uppercase"
   },
   confirmationTitle: {
-    marginBottom: 8,
     color: "#172033",
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "900"
   },
+  confirmationMessage: {
+    color: "#405a78",
+    fontSize: 16,
+    lineHeight: 24
+  },
   confirmationText: {
-    marginBottom: 14,
-    color: "#5c4420",
+    color: "#9f1c12",
     fontSize: 15,
     fontWeight: "700"
   },
@@ -658,6 +677,13 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 18,
     backgroundColor: "#fff7e6"
+  },
+  confirmationStatusPanel: {
+    borderWidth: 1,
+    borderColor: "#d7e5f2",
+    borderRadius: 8,
+    padding: 14,
+    backgroundColor: "#f8fbff"
   },
   secondaryButton: {
     alignItems: "center",
