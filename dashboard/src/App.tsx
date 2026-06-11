@@ -148,8 +148,10 @@ export const App = () => {
       return;
     }
 
+    setStatusMessage("Loading readings");
     const result = await getSensorReadings(token, selectedMonitoredPersonId);
     setReadings(result.items);
+    setStatusMessage(result.items.length ? "Readings loaded" : "No readings found for selected person");
   };
 
   useEffect(() => {
@@ -252,6 +254,12 @@ export const App = () => {
       setPersonFormError(error instanceof Error ? error.message : "Monitored person creation failed");
       setStatusMessage("Monitored person creation failed");
     }
+  };
+
+  const handleSelectMonitoredPerson = (person: MonitoredPerson) => {
+    setSelectedMonitoredPersonId(person.id);
+    setPairingCodeResult(null);
+    setStatusMessage(`Selected ${person.displayName}`);
   };
 
   const handleResolveAlert = async (alertId: string) => {
@@ -487,7 +495,7 @@ export const App = () => {
                     key={person.id}
                     className={`person-row ${person.id === selectedMonitoredPersonId ? "person-row-active" : ""}`}
                     type="button"
-                    onClick={() => setSelectedMonitoredPersonId(person.id)}
+                    onClick={() => handleSelectMonitoredPerson(person)}
                   >
                     <span>
                       <strong>{person.displayName}</strong>
@@ -658,7 +666,11 @@ export const App = () => {
             ) : (
               <div className="empty-chart">
                 <Smartphone aria-hidden="true" />
-                <p>Pair a mobile device and start monitoring to show live motion readings here.</p>
+                <p>
+                  {selectedMonitoredPerson
+                    ? `No readings are loaded for ${selectedMonitoredPerson.displayName}. Use Refresh readings after mobile monitoring starts.`
+                    : "Select a monitored person to load live motion readings."}
+                </p>
               </div>
             )}
           </div>
