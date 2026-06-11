@@ -4,10 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -26,6 +28,7 @@ import type { MotionVector, SensorReadingResponse } from "./src/types/sensorRead
 const SENSOR_UPDATE_INTERVAL_MS = 500;
 const SENSOR_UPLOAD_INTERVAL_MS = 2_000;
 const CONFIRMATION_POLL_INTERVAL_MS = 3_000;
+const APP_ICON = require("./assets/safemotion.png");
 
 const emptyVector: MotionVector = {
   x: 0,
@@ -227,7 +230,7 @@ export default function App() {
       <SafeAreaView style={styles.safeArea}>
         <StatusBar style="dark" />
         <View style={styles.loadingScreen}>
-          <ActivityIndicator color="#15735d" />
+          <ActivityIndicator color="#1261a6" />
           <Text style={styles.description}>Loading device session</Text>
         </View>
       </SafeAreaView>
@@ -238,116 +241,121 @@ export default function App() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.screen}>
-        <View style={styles.header}>
-          <Text style={styles.brand}>SafeMotion</Text>
-          <Text style={styles.badge}>{session ? "Paired" : "Pairing"}</Text>
-        </View>
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+          <View style={styles.header}>
+            <View style={styles.brandGroup}>
+              <Image source={APP_ICON} style={styles.brandIcon} />
+              <Text style={styles.brand}>SafeMotion</Text>
+            </View>
+            <Text style={styles.badge}>{session ? "Paired" : "Pairing"}</Text>
+          </View>
 
-        <View style={styles.panel}>
-          <Text style={styles.title}>{session ? "Device is paired" : "Pair this phone"}</Text>
-          <Text style={styles.description}>
-            {session
-              ? "This phone is authorized to send SafeMotion data with a device token."
-              : "Enter the 6-digit code generated from the caregiver dashboard."}
-          </Text>
-        </View>
+          <View style={styles.panel}>
+            <Text style={styles.title}>{session ? "Device is paired" : "Pair this phone"}</Text>
+            <Text style={styles.description}>
+              {session
+                ? "This phone is authorized to send SafeMotion data with a device token."
+                : "Enter the 6-digit code generated from the caregiver dashboard."}
+            </Text>
+          </View>
 
-        {session ? (
-          <View style={styles.infoGrid}>
-            {activeConfirmation ? (
-              <View style={styles.confirmationPanel}>
-                <Text style={styles.confirmationTitle}>{activeConfirmation.message}</Text>
-                <Text style={styles.confirmationText}>Severity: {activeConfirmation.severity}</Text>
-                <View style={styles.confirmationActions}>
-                  <Pressable
-                    style={[styles.safeButton, isResponding && styles.disabledButton]}
-                    onPress={() => void handleConfirmationResponse("SAFE")}
-                    disabled={isResponding}
-                  >
-                    <Text style={styles.primaryButtonText}>I'm safe</Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.dangerButton, isResponding && styles.disabledButton]}
-                    onPress={() => void handleConfirmationResponse("NEEDS_HELP")}
-                    disabled={isResponding}
-                  >
-                    <Text style={styles.primaryButtonText}>Need help</Text>
-                  </Pressable>
+          {session ? (
+            <View style={styles.infoGrid}>
+              {activeConfirmation ? (
+                <View style={styles.confirmationPanel}>
+                  <Text style={styles.confirmationTitle}>{activeConfirmation.message}</Text>
+                  <Text style={styles.confirmationText}>Severity: {activeConfirmation.severity}</Text>
+                  <View style={styles.confirmationActions}>
+                    <Pressable
+                      style={[styles.safeButton, isResponding && styles.disabledButton]}
+                      onPress={() => void handleConfirmationResponse("SAFE")}
+                      disabled={isResponding}
+                    >
+                      <Text style={styles.primaryButtonText}>I'm safe</Text>
+                    </Pressable>
+                    <Pressable
+                      style={[styles.dangerButton, isResponding && styles.disabledButton]}
+                      onPress={() => void handleConfirmationResponse("NEEDS_HELP")}
+                      disabled={isResponding}
+                    >
+                      <Text style={styles.primaryButtonText}>Need help</Text>
+                    </Pressable>
+                  </View>
                 </View>
-              </View>
-            ) : null}
+              ) : null}
 
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Device ID</Text>
-              <Text style={styles.infoValue}>{session.deviceId}</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Monitored person ID</Text>
-              <Text style={styles.infoValue}>{session.monitoredPersonId}</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Paired at</Text>
-              <Text style={styles.infoValue}>{new Date(session.pairedAt).toLocaleString()}</Text>
-            </View>
-            <View style={styles.panel}>
-              <Text style={styles.sectionTitle}>Motion upload</Text>
-              <Text style={styles.description}>
-                {isMonitoring
-                  ? "Accelerometer and gyroscope readings are being uploaded to the backend."
-                  : "Start monitoring to upload live motion readings with the device token."}
-              </Text>
-              <Pressable style={isMonitoring ? styles.dangerButton : styles.primaryButton} onPress={toggleMonitoring}>
-                <Text style={styles.primaryButtonText}>{isMonitoring ? "Stop monitoring" : "Start monitoring"}</Text>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Device ID</Text>
+                <Text style={styles.infoValue}>{session.deviceId}</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Monitored person ID</Text>
+                <Text style={styles.infoValue}>{session.monitoredPersonId}</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Paired at</Text>
+                <Text style={styles.infoValue}>{new Date(session.pairedAt).toLocaleString()}</Text>
+              </View>
+              <View style={styles.panel}>
+                <Text style={styles.sectionTitle}>Motion upload</Text>
+                <Text style={styles.description}>
+                  {isMonitoring
+                    ? "Accelerometer and gyroscope readings are being uploaded to the backend."
+                    : "Start monitoring to upload live motion readings with the device token."}
+                </Text>
+                <Pressable style={isMonitoring ? styles.dangerButton : styles.primaryButton} onPress={toggleMonitoring}>
+                  <Text style={styles.primaryButtonText}>{isMonitoring ? "Stop monitoring" : "Start monitoring"}</Text>
+                </Pressable>
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Accelerometer</Text>
+                <Text style={styles.infoValue}>{formatVector(accelerometer)}</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Gyroscope</Text>
+                <Text style={styles.infoValue}>{formatVector(gyroscope)}</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Latest upload</Text>
+                <Text style={styles.infoValue}>
+                  {latestUpload
+                    ? `${latestUpload.detectionStatus} at ${new Date(latestUpload.receivedAt).toLocaleTimeString()}`
+                    : "No upload yet"}
+                </Text>
+              </View>
+              <Pressable style={styles.secondaryButton} onPress={handleReset}>
+                <Text style={styles.secondaryButtonText}>Reset pairing</Text>
               </Pressable>
             </View>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Accelerometer</Text>
-              <Text style={styles.infoValue}>{formatVector(accelerometer)}</Text>
+          ) : (
+            <View style={styles.form}>
+              <Text style={styles.inputLabel}>Pairing code</Text>
+              <TextInput
+                value={pairingCode}
+                onChangeText={(value) => setPairingCode(value.replace(/\D/g, "").slice(0, 6))}
+                keyboardType="number-pad"
+                maxLength={6}
+                placeholder="123456"
+                placeholderTextColor="#83948f"
+                style={styles.input}
+              />
+              <Pressable style={[styles.primaryButton, isPairing && styles.disabledButton]} onPress={handlePair} disabled={isPairing}>
+                <Text style={styles.primaryButtonText}>{isPairing ? "Pairing..." : "Pair device"}</Text>
+              </Pressable>
             </View>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Gyroscope</Text>
-              <Text style={styles.infoValue}>{formatVector(gyroscope)}</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Latest upload</Text>
-              <Text style={styles.infoValue}>
-                {latestUpload
-                  ? `${latestUpload.detectionStatus} at ${new Date(latestUpload.receivedAt).toLocaleTimeString()}`
-                  : "No upload yet"}
-              </Text>
-            </View>
-            <Pressable style={styles.secondaryButton} onPress={handleReset}>
-              <Text style={styles.secondaryButtonText}>Reset pairing</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <View style={styles.form}>
-            <Text style={styles.inputLabel}>Pairing code</Text>
-            <TextInput
-              value={pairingCode}
-              onChangeText={(value) => setPairingCode(value.replace(/\D/g, "").slice(0, 6))}
-              keyboardType="number-pad"
-              maxLength={6}
-              placeholder="123456"
-              placeholderTextColor="#83948f"
-              style={styles.input}
-            />
-            <Pressable style={[styles.primaryButton, isPairing && styles.disabledButton]} onPress={handlePair} disabled={isPairing}>
-              <Text style={styles.primaryButtonText}>{isPairing ? "Pairing..." : "Pair device"}</Text>
-            </Pressable>
-          </View>
-        )}
+          )}
 
-        <View style={styles.infoGrid}>
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Status</Text>
-            <Text style={styles.infoValue}>{status}</Text>
+          <View style={styles.infoGrid}>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Status</Text>
+              <Text style={styles.infoValue}>{status}</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>API</Text>
+              <Text style={styles.infoValue}>{appConfig.apiBaseUrl}</Text>
+            </View>
           </View>
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>API</Text>
-            <Text style={styles.infoValue}>{appConfig.apiBaseUrl}</Text>
-          </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -356,7 +364,7 @@ export default function App() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#f4f7f6"
+    backgroundColor: "#f4f8fc"
   },
   loadingScreen: {
     flex: 1,
@@ -365,9 +373,12 @@ const styles = StyleSheet.create({
     gap: 12
   },
   screen: {
-    flex: 1,
+    flex: 1
+  },
+  scrollContent: {
     padding: 22,
-    gap: 18
+    gap: 18,
+    paddingBottom: 36
   },
   header: {
     flexDirection: "row",
@@ -376,9 +387,20 @@ const styles = StyleSheet.create({
     gap: 12
   },
   brand: {
-    color: "#10231f",
+    color: "#10243f",
     fontSize: 28,
     fontWeight: "800"
+  },
+  brandGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    minWidth: 0
+  },
+  brandIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 8
   },
   badge: {
     overflow: "hidden",
@@ -386,31 +408,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     color: "#ffffff",
-    backgroundColor: "#15735d",
+    backgroundColor: "#1261a6",
     fontSize: 13,
     fontWeight: "700"
   },
   panel: {
     borderWidth: 1,
-    borderColor: "#d9e3e0",
+    borderColor: "#d7e5f2",
     borderRadius: 8,
     padding: 18,
     backgroundColor: "#ffffff"
   },
   title: {
     marginBottom: 8,
-    color: "#17202a",
+    color: "#172033",
     fontSize: 24,
     fontWeight: "800"
   },
   sectionTitle: {
     marginBottom: 8,
-    color: "#17202a",
+    color: "#172033",
     fontSize: 18,
     fontWeight: "800"
   },
   description: {
-    color: "#405650",
+    color: "#405a78",
     fontSize: 16,
     lineHeight: 24
   },
@@ -418,18 +440,18 @@ const styles = StyleSheet.create({
     gap: 10
   },
   inputLabel: {
-    color: "#405650",
+    color: "#405a78",
     fontSize: 13,
     fontWeight: "800",
     textTransform: "uppercase"
   },
   input: {
     borderWidth: 1,
-    borderColor: "#b7c9c3",
+    borderColor: "#bdd1e5",
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    color: "#17202a",
+    color: "#172033",
     backgroundColor: "#ffffff",
     fontSize: 22,
     fontWeight: "800",
@@ -440,7 +462,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 8,
     paddingVertical: 14,
-    backgroundColor: "#15735d"
+    backgroundColor: "#1261a6"
   },
   primaryButtonText: {
     color: "#ffffff",
@@ -458,7 +480,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 8,
     paddingVertical: 14,
-    backgroundColor: "#15735d"
+    backgroundColor: "#1261a6"
   },
   confirmationPanel: {
     borderWidth: 1,
@@ -469,7 +491,7 @@ const styles = StyleSheet.create({
   },
   confirmationTitle: {
     marginBottom: 8,
-    color: "#17202a",
+    color: "#172033",
     fontSize: 24,
     fontWeight: "900"
   },
@@ -486,13 +508,13 @@ const styles = StyleSheet.create({
   secondaryButton: {
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#b7c9c3",
+    borderColor: "#bdd1e5",
     borderRadius: 8,
     paddingVertical: 12,
     backgroundColor: "#ffffff"
   },
   secondaryButtonText: {
-    color: "#10231f",
+    color: "#10243f",
     fontSize: 15,
     fontWeight: "800"
   },
@@ -504,22 +526,21 @@ const styles = StyleSheet.create({
   },
   infoItem: {
     borderWidth: 1,
-    borderColor: "#d9e3e0",
+    borderColor: "#d7e5f2",
     borderRadius: 8,
     padding: 14,
     backgroundColor: "#ffffff"
   },
   infoLabel: {
     marginBottom: 4,
-    color: "#5c6f6a",
+    color: "#617995",
     fontSize: 12,
     fontWeight: "800",
     textTransform: "uppercase"
   },
   infoValue: {
-    color: "#17202a",
+    color: "#172033",
     fontSize: 15,
     fontWeight: "700"
   }
 });
-

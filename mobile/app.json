@@ -4,6 +4,7 @@
     "slug": "safemotion",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/safemotion.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "assetBundlePatterns": ["**/*"],
@@ -12,7 +13,11 @@
       "bundleIdentifier": "com.safemotion.mobile"
     },
     "android": {
-      "package": "com.safemotion.mobile"
+      "package": "com.safemotion.mobile",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/safemotion.png",
+        "backgroundColor": "#0b1f3a"
+      }
     },
     "web": {
       "bundler": "metro"
@@ -23,4 +28,3 @@
     }
   }
 }
-
