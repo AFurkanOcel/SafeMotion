@@ -4,6 +4,7 @@ node_modules/
 # Build output
 dist/
 coverage/
+.expo/
 
 # Environment files
 .env
@@ -19,4 +20,3 @@ npm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
-
