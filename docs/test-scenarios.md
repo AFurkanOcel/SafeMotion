@@ -1,122 +1,144 @@
 # SafeMotion Test Scenarios
 
-This document defines manual and automated test scenarios for the SafeMotion MVP and planned bonus features.
+This document lists manual and automated tests for the completed MVP and low-risk bonus features.
+
+## Backend Automated Tests
+
+Run:
+
+```bash
+cd backend
+npm run typecheck
+npm run build
+npm run test
+npm audit --audit-level=moderate
+```
+
+Covered areas:
+
+- App health and OpenAPI availability.
+- Auth validation and protected route behavior.
+- Token generation and hashing.
+- Monitored person access rules.
+- Device pairing workflow.
+- Sensor schema validation.
+- Detection threshold behavior.
+- Inactivity escalation behavior.
+- CSV export escaping and caregiver scoping.
 
 ## Auth Tests
 
-- Register a caregiver as an admin and verify the stored user does not expose a password.
-- Log in with valid credentials and verify a JWT is returned.
-- Log in with an invalid password and verify `401 INVALID_CREDENTIALS`.
-- Call a protected endpoint without JWT and verify `401 UNAUTHORIZED`.
-- Call `/api/v1/auth/me` with a valid JWT and verify current user data.
+- Public signup creates a `CAREGIVER` account.
+- Login with valid credentials returns a JWT.
+- Login with invalid credentials returns `401`.
+- Protected endpoints reject missing JWT.
+- `/api/v1/auth/me` returns the authenticated user.
+- Admin-only registration rejects caregiver users.
 
 ## Role Authorization Tests
 
-- Verify `admin` can create users.
-- Verify `caregiver` cannot create users.
-- Verify a caregiver can access assigned monitored persons.
-- Verify a caregiver cannot access another caregiver's monitored person.
-- Verify inactive users cannot access protected endpoints.
+- `ADMIN` can access all monitored persons.
+- `CAREGIVER` can access only assigned monitored persons.
+- A caregiver cannot generate pairing codes for another caregiver's person.
+- A caregiver cannot export another caregiver's alert data.
 
 ## Device Pairing Tests
 
-- Generate a pairing code for a monitored person.
-- Pair a mobile device with a valid code and receive a device token.
-- Try pairing with an invalid code and verify failure.
-- Try pairing with an expired code and verify failure.
-- Try reusing a pairing code and verify failure.
-- Verify device token is required for sensor upload.
-- Verify device token authorization is separate from user roles.
+- Dashboard generates a six-digit pairing code.
+- Pairing code has an expiry timestamp.
+- Mobile pairs with a valid code and receives a device token.
+- Invalid pairing code returns `INVALID_PAIRING_CODE`.
+- Expired pairing code returns `PAIRING_CODE_EXPIRED`.
+- Reused pairing code fails because it is cleared after pairing.
+- Device token is required for sensor upload.
 
-## Sensor Reading Validation Tests
+## Sensor Reading Tests
 
-- Upload a valid accelerometer and gyroscope reading.
-- Upload a valid batch of readings.
-- Reject missing accelerometer fields.
-- Reject missing gyroscope fields.
-- Reject non-numeric sensor values.
-- Reject timestamps too far in the future.
-- Reject upload from inactive device.
-- Verify accepted readings are stored with `recordedAt` and `receivedAt`.
+- Valid accelerometer and gyroscope payload is accepted.
+- Valid batch payload is accepted.
+- Missing accelerometer values are rejected.
+- Missing gyroscope values are rejected.
+- Non-numeric values are rejected.
+- Future timestamps beyond allowed rules are rejected.
+- Accepted readings store both `recordedAt` and `receivedAt`.
 
-## Fall Detection Service Tests
+## Detection Tests
 
-- Normal movement should not create a detection event.
-- High acceleration magnitude should create `FALL_SUSPECTED`.
-- High rotation magnitude with impact should create `FALL_SUSPECTED`.
-- Duplicate fall events should not be created inside the same active detection window.
-- Detection metadata should include threshold details needed for debugging.
+- Normal motion returns `NORMAL`.
+- High acceleration creates `FALL_SUSPECTED`.
+- High rotation creates `FALL_SUSPECTED`.
+- Existing open fall event prevents duplicate fall windows.
+- Low movement after a fall window creates `INACTIVITY_DETECTED`.
+- Inactivity escalation records no-response and creates alert behavior through services.
 
-## Inactivity Detection Tests
+## Confirmation Tests
 
-- After `FALL_SUSPECTED`, continued low motion should trigger escalation.
-- Normal movement after suspicion should prevent critical escalation.
-- Inactivity outside a fall suspicion window should follow the configured MVP behavior.
-- The service should create `NO_RESPONSE` when the confirmation timeout expires.
+- `SAFE` closes an open detection event.
+- `NEEDS_HELP` escalates to a critical alert.
+- `NO_RESPONSE` is recorded by backend escalation logic.
+- A mismatched device response is rejected.
+- A response for an already closed event is rejected.
 
-## Confirmation Response Tests
+## Alert Tests
 
-- Device submits `SAFE` and detection status becomes `SAFE_CONFIRMED`.
-- Device submits `NEEDS_HELP` and a critical alert is created.
-- Backend timeout creates `NO_RESPONSE` and a critical alert.
-- Response from a mismatched device is rejected.
-- Response to an already closed event is rejected.
+- Critical alerts appear in the list.
+- Active alerts appear in the dashboard banner.
+- Alert resolution changes status to `RESOLVED`.
+- Resolving an already resolved alert returns a conflict.
+- CSV export includes active and resolved alerts.
+- CSV export escapes commas, quotes, and newlines.
 
-## Alert Creation and Resolve Tests
+## Socket.IO Tests
 
-- Critical alert is created after no response.
-- Alert appears in alert list.
-- Alert appears in dashboard summary.
-- Caregiver resolves an active alert.
-- Resolving an already resolved alert returns `409 ALERT_ALREADY_RESOLVED`.
-- CSV export includes resolved and active alert rows.
-
-## Socket.IO Live Event Tests
-
-- Dashboard socket connects with valid JWT.
-- Dashboard socket rejects invalid JWT.
-- Mobile socket connects with valid device token.
-- `sensor.reading.created` is emitted after valid ingestion.
-- `detection.fallSuspected` is emitted after fall suspicion.
-- `alert.created` is emitted after escalation.
-- `alert.resolved` is emitted after caregiver resolution.
+- Dashboard receives `sensor.reading.created`.
+- Dashboard receives `device.status.updated`.
+- Dashboard receives `detection.fallSuspected`.
+- Dashboard receives `detection.inactivityDetected`.
+- Dashboard receives `alert.created`.
+- Dashboard receives `alert.resolved`.
+- Mobile receives or fetches active confirmation state after a fall suspicion.
 
 ## Dashboard Manual Tests
 
-- Login screen uses English UI text.
-- Caregiver can view monitored persons.
-- Live reading chart or table updates without page refresh.
-- Active alerts are visible and visually clear.
-- Alert resolve action updates the list and summary.
+- Login and signup screens use English UI text.
+- Caregiver can create a monitored person.
+- Caregiver can select a monitored person.
+- Pairing panel creates a code for the selected person.
+- Live readings update after mobile uploads.
+- Active alert banner is visible.
+- Alert resolve action works.
 - CSV export downloads a readable file.
-- UI text remains English.
+- Docker dashboard opens at `http://localhost:5173`.
 
-## Mobile App Manual Tests
+## Mobile Manual Tests
 
-- Pairing screen accepts a pairing code.
-- Paired device stores token securely enough for MVP.
-- Sensor monitoring can be started.
-- Sensor readings reach the backend.
-- Fall simulation triggers `Are you okay?`.
-- Tapping `I'm safe` closes the detection event.
-- No response scenario creates a critical alert.
-- UI text remains English.
+- App icon and SafeMotion branding display correctly.
+- Backend connection status is visible.
+- Pairing screen accepts dashboard-generated code.
+- Device token is stored for the MVP session.
+- Sensor monitoring can start and stop.
+- `Send test fall reading` creates a safe demo fall trigger.
+- Confirmation panel shows `I'm safe` and `Need help`.
+- Physical phone test works over LAN with the computer's Wi-Fi IP.
 
 ## Pre-Demo Checklist
 
-- Backend starts successfully.
-- Database is migrated and seeded with demo data if needed.
-- Dashboard login works.
-- Mobile device is paired.
-- Live sensor updates appear on dashboard.
-- Fall simulation works.
-- Confirmation and no-response scenarios work.
-- Alert resolution works.
+- Docker Desktop is running.
+- `docker compose config` passes.
+- `docker compose up --build` starts PostgreSQL, backend, and dashboard.
+- Swagger opens.
+- Caregiver login or signup works.
+- Monitored person create/select works.
+- Pairing code generation works.
+- Mobile pairing works.
+- Live readings appear.
+- Demo fall trigger works.
+- Safe confirmation works.
+- Need-help or no-response alert scenario works.
+- Alert resolve works.
 - CSV export works.
-- Swagger page opens.
-- Test command output is ready to show if requested.
+- Backend tests pass.
 
 ## Next implementation step
 
-Create the backend Express TypeScript setup after user approval.
-
+Finalize the README and screenshot pass after the user adds final screenshots.

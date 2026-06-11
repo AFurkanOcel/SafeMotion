@@ -1,144 +1,155 @@
 # SafeMotion Setup Guide
 
-This setup guide is a planning skeleton. Exact commands will be completed during implementation phases.
-
 ## Requirements
-
-Planned local requirements:
 
 - Node.js LTS.
 - npm.
-- PostgreSQL.
 - Git.
-- Expo tooling for mobile development.
-- A modern browser for the dashboard.
-- Optional Docker and Docker Compose for the bonus deployment phase.
+- Docker Desktop with Docker Compose.
+- Expo Go on a physical phone for mobile testing.
+- A browser for the dashboard.
 
-## Backend Setup
+## Environment Files
 
-Planned steps:
-
-1. Enter the `backend` directory.
-2. Install backend dependencies.
-3. Configure environment variables.
-4. Start the Express development server.
-5. Verify the health endpoint.
-
-No backend code or package manifest is created in the current documentation phase.
-
-## Database Setup
-
-Planned steps:
-
-1. Create a local PostgreSQL database.
-2. Set the database URL in the backend environment file.
-3. Run Prisma migrations.
-4. Verify Prisma can connect to the database.
-
-## Prisma Migration
-
-Planned steps:
-
-1. Define the Prisma schema.
-2. Run the initial migration.
-3. Generate the Prisma client.
-4. Optionally seed demo users and monitored persons.
-
-## Dashboard Setup
-
-Planned steps:
-
-1. Enter the `dashboard` directory.
-2. Install dashboard dependencies.
-3. Configure the backend API URL.
-4. Start the Vite development server.
-5. Log in with a demo caregiver account.
-
-No dashboard code or package manifest is created in the current documentation phase.
-
-## Mobile Setup
-
-Planned steps:
-
-1. Enter the `mobile` directory.
-2. Install mobile dependencies.
-3. Configure the backend API URL.
-4. Start Expo.
-5. Pair the mobile device using a dashboard-generated pairing code.
-
-No mobile code or package manifest is created in the current documentation phase.
-
-## Environment Variables
-
-Planned backend variables:
+Backend environment example:
 
 ```text
 NODE_ENV=development
 PORT=3000
-DATABASE_URL=postgresql://user:password@localhost:5432/safemotion
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/safemotion
 JWT_SECRET=replace-with-local-secret
 JWT_EXPIRES_IN=1d
 DEVICE_TOKEN_SECRET=replace-with-local-device-secret
 CORS_ORIGIN=http://localhost:5173
+LOG_LEVEL=info
 ```
 
-Planned dashboard variables:
+Dashboard environment example:
 
 ```text
 VITE_API_BASE_URL=http://localhost:3000/api/v1
 VITE_SOCKET_URL=http://localhost:3000
 ```
 
-Planned mobile variables:
+Mobile environment for emulator/local web:
 
 ```text
 EXPO_PUBLIC_API_BASE_URL=http://localhost:3000/api/v1
 EXPO_PUBLIC_SOCKET_URL=http://localhost:3000
 ```
 
-## Running the Project
+Mobile environment for a physical phone:
 
-Planned order:
-
-1. Start PostgreSQL.
-2. Start the backend.
-3. Start the dashboard.
-4. Start the mobile app.
-5. Pair the mobile device.
-6. Start sensor monitoring.
-
-## Running Tests
-
-Planned test commands:
-
-```bash
-npm test
-npm run test:watch
-npm run test:coverage
+```text
+EXPO_PUBLIC_API_BASE_URL=http://PC_LOCAL_IP:3000/api/v1
+EXPO_PUBLIC_SOCKET_URL=http://PC_LOCAL_IP:3000
 ```
 
-Exact commands may differ after package scripts are implemented.
+Replace `PC_LOCAL_IP` with the computer's Wi-Fi IP address. The computer and phone must be on the same Wi-Fi network.
 
-## Docker Setup
+## Docker Demo Setup
 
-Docker Compose is planned as a bonus phase. It should include:
+From the project root:
 
-- PostgreSQL service.
-- Backend service.
-- Environment variable configuration.
-- Persistent database volume.
+```bash
+docker compose config
+docker compose up --build
+```
 
-Dashboard and mobile can remain development-server based for the course demo unless a later phase adds containerization.
+Services:
+
+- Backend: `http://localhost:3000`
+- Dashboard: `http://localhost:5173`
+- Swagger: `http://localhost:3000/api-docs`
+- PostgreSQL: `localhost:5432`
+
+Docker Compose starts PostgreSQL first, waits for backend health, and then serves the dashboard.
+
+## Backend Development
+
+```bash
+cd backend
+npm run typecheck
+npm run build
+npm run test
+npm audit --audit-level=moderate
+```
+
+Useful commands:
+
+```bash
+npm run dev
+npm run prisma:generate
+npm run prisma:migrate:dev
+npm run prisma:seed
+```
+
+## Dashboard Development
+
+```bash
+cd dashboard
+npm run typecheck
+npm run build
+npm audit --audit-level=moderate
+```
+
+To run the development server:
+
+```bash
+npm run dev
+```
+
+Development dashboard URL:
+
+```text
+http://localhost:5173
+```
+
+## Mobile Development
+
+```bash
+cd mobile
+npm run typecheck
+npm audit --audit-level=moderate
+```
+
+Start Expo in LAN mode:
+
+```bash
+npm run start -- --host lan
+```
+
+For physical phone testing:
+
+1. Start Docker Compose or the backend manually.
+2. Configure the mobile `.env` with the computer's Wi-Fi IP.
+3. Start Expo with LAN mode.
+4. Scan the QR code with Expo Go.
+5. Pair the phone using a dashboard-generated pairing code.
+
+## Demo Workflow
+
+1. Open the dashboard.
+2. Sign up or log in as a caregiver.
+3. Create or select a monitored person.
+4. Generate a pairing code.
+5. Pair the mobile device.
+6. Start sensor monitoring on the phone.
+7. Watch live readings on the dashboard.
+8. Use `Send test fall reading` on mobile for a safe demo trigger.
+9. Respond with `I'm safe` or `Need help`.
+10. Resolve alerts from the dashboard.
+11. Export alert history as CSV.
 
 ## Common Problems
 
-- PostgreSQL connection fails: verify `DATABASE_URL`, database name, user, and password.
-- JWT errors: verify `JWT_SECRET` is set and the token is sent in the `Authorization` header.
-- Device upload fails: verify the mobile app uses a valid device token from pairing.
-- Dashboard does not update live: verify Socket.IO URL, CORS settings, and server logs.
-- Mobile cannot reach backend: verify local network address and firewall settings.
+- Docker command is not found: start Docker Desktop and verify `docker --version`.
+- Dashboard cannot reach backend: verify backend is running on port `3000`.
+- Mobile cannot reach backend: use the computer's Wi-Fi IP, not `localhost`.
+- Pairing fails: generate a fresh pairing code; codes expire and are single-use.
+- Socket events do not appear: verify `VITE_SOCKET_URL` or `EXPO_PUBLIC_SOCKET_URL`.
+- Login fails: verify seeded demo credentials or use public caregiver signup.
 
 ## Next implementation step
 
-Create the backend Express TypeScript setup after user approval.
-
+Finalize the README and screenshot pass after the user adds final screenshots.

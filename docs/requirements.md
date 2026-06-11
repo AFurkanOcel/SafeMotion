@@ -2,82 +2,74 @@
 
 ## Project Description
 
-SafeMotion is a verified fall and inactivity monitoring platform for people who may be alone at home. A mobile device acts as an IoT endpoint, sends motion sensor readings to a Node.js backend, and allows a caregiver to monitor live risk status from a web dashboard.
+SafeMotion is a fall and inactivity monitoring platform built for the Node.js Web Programming term project. It maps to the "Fall and Inactivity Detection" scenario from the project sheet.
 
-The project follows the Node.js Web Programming term project requirement sheet and uses the "Fall and Inactivity Detection" scenario.
+A mobile phone acts as the sensor device. It collects accelerometer and gyroscope readings, sends timestamped data to a Node.js backend, and lets the monitored person respond to a fall confirmation prompt. A caregiver uses the dashboard to create monitored persons, pair devices, watch live sensor data, receive alerts, and resolve incidents.
 
 ## Target Users
 
-- Caregivers who monitor a family member or dependent person.
-- Admin users who manage system users and high-level configuration.
-- Monitored people who carry the mobile device during the demo flow.
+- `ADMIN`: manages high-level system access and can view all monitored records.
+- `CAREGIVER`: manages assigned monitored persons, device pairing, alerts, and demo workflows.
+- Monitored person: carries the paired mobile phone and responds to confirmation prompts.
 
-The application must not force the monitored person into labels such as elderly, disabled, or other. Detection is based on sensor data, inactivity, and confirmation response.
-
-## Main Demo Persona
-
-The main demo persona is a person living alone who may need help after a fall. A caregiver uses the dashboard to watch live status, receive alerts, and resolve incidents.
+Mobile devices are not users and do not have roles. They authenticate with device token authorization after pairing.
 
 ## Problem Definition
 
-People who are alone at home may fall and remain unable to request help. Simple fall detection systems can also create false alarms when a phone is shaken or dropped. SafeMotion reduces this risk with a staged workflow: detect suspicious motion, request confirmation, escalate only when needed, and show alerts to a caregiver.
+People who are alone may fall and become unable to request help. SafeMotion demonstrates a staged safety workflow:
 
-## Solution Approach
-
-1. The mobile app collects accelerometer and gyroscope readings.
-2. Readings are sent to the backend with timestamps and a device token.
-3. The backend validates, stores, and analyzes the readings.
-4. A fall-like movement creates a `FALL_SUSPECTED` detection event.
-5. The mobile app shows `Are you okay?`.
-6. If the user taps `I'm safe`, the event is closed as safe.
-7. If there is no response and inactivity continues, a critical alert is created.
-8. The dashboard receives live updates through Socket.IO.
-9. The caregiver resolves alerts and can export alert history as CSV.
+1. Detect suspicious motion.
+2. Ask the person for confirmation.
+3. Escalate only when no safety confirmation is received and inactivity continues.
+4. Notify the caregiver in real time.
 
 ## PDF Requirements Mapped to SafeMotion
 
-| PDF requirement | SafeMotion mapping |
+| PDF requirement | SafeMotion implementation |
 | --- | --- |
-| Mobile data collection from at least two sensors | Mobile app collects accelerometer and gyroscope data. |
-| Timestamped sensor upload | Each `SensorReading` includes `recordedAt` and server `receivedAt`. |
+| Mobile data collection from at least two sensors | Expo mobile app collects accelerometer and gyroscope data. |
+| Timestamped data upload | Each `SensorReading` includes `recordedAt`; backend stores `receivedAt`. |
 | Node.js backend | Express + TypeScript backend. |
-| RESTful API | Versioned REST API under `/api/v1`. |
-| Data validation and storage | Zod validation, Prisma persistence, structured error responses. |
-| User login | JWT login for dashboard users. |
-| At least two roles | `admin` and `caregiver`. |
-| Authorization | Role-based JWT authorization for dashboard APIs; device token authorization for mobile upload APIs. |
-| Database module | PostgreSQL with Prisma models for users, devices, readings, events, alerts, and confirmations. |
-| Real-time monitoring panel | React dashboard with Socket.IO live updates. |
-| Time-series visualization | Dashboard chart or table for recent sensor readings. |
-| Analysis/anomaly detection | Threshold-based fall suspicion and inactivity detection. |
-| Alarm mechanism | Alerts are created, listed, shown live, and resolved. |
-| Documentation | README and dedicated docs for requirements, architecture, data model, API, roadmap, tests, demo, and setup. |
+| RESTful API | Versioned API under `/api/v1`. |
+| Data validation | Zod schemas validate request bodies, params, and query values. |
+| Error handling | Centralized JSON error responses. |
+| User authentication | Email/password login returns JWT. |
+| Authorization with roles | `ADMIN` and `CAREGIVER` roles protect dashboard APIs. |
+| Device authorization | Mobile APIs use device tokens, not user roles. |
+| Database module | PostgreSQL with Prisma models. |
+| Real-time dashboard | React dashboard receives Socket.IO events. |
+| Time-series display | Dashboard shows recent sensor readings in a chart/list. |
+| Detection/analysis | Threshold-based fall suspicion and inactivity analysis. |
+| Alarm mechanism | Alerts are created, listed live, exported, and resolved. |
+| Documentation | Dedicated docs for requirements, architecture, data model, API, tests, demo, and setup. |
 
 ## Functional Requirements
 
-- Users can register or be created with `admin` or `caregiver` roles.
-- Users can log in and receive a JWT.
-- Caregivers can create and view monitored persons.
-- Caregivers can generate a device pairing code.
-- The mobile app can pair using a pairing code and receive a device token.
-- The mobile app can upload accelerometer and gyroscope readings with timestamps.
-- The backend validates all request bodies.
-- The backend stores sensor readings and detection events.
-- The backend detects fall suspicion using motion thresholds.
-- The backend detects inactivity using low-motion windows after a suspected fall.
-- The mobile app can submit confirmation responses.
-- The dashboard can show live sensor status and alert status.
-- The dashboard can list and resolve alerts.
-- The dashboard can export alert history as CSV.
+- Public signup creates `CAREGIVER` accounts only.
+- Admin-protected registration can create users with explicit roles.
+- Dashboard users can log in and get a JWT.
+- Caregivers can create, list, and select monitored persons.
+- Caregivers can generate temporary pairing codes for selected monitored persons.
+- Mobile devices can pair with a code and receive a raw device token once.
+- Mobile devices can upload accelerometer and gyroscope readings with timestamps.
+- Backend calculates acceleration and rotation magnitudes.
+- Backend creates `FALL_SUSPECTED` events when thresholds are crossed.
+- Mobile app shows a confirmation panel for active fall events.
+- Mobile app can submit `SAFE` or `NEEDS_HELP` responses.
+- Backend escalates no-response/inactivity cases to critical alerts.
+- Dashboard shows selected person, latest readings, live events, active alerts, and pairing state.
+- Dashboard can resolve alerts and export alert history as CSV.
+- Swagger/OpenAPI documentation is available.
+- Docker Compose can run PostgreSQL, backend, and dashboard.
 
 ## Non-Functional Requirements
 
-- API, database, code, Swagger/OpenAPI docs, README, and UI text must be English.
-- The backend should use a modular structure with routes, controllers, services, schemas, middleware, sockets, and utilities.
-- Errors should use consistent HTTP status codes and JSON response bodies.
-- Sensitive data should be minimized. The MVP stores motion data and operational metadata only.
-- The MVP should be easy to run locally and easy to demonstrate to a jury.
-- Mandatory project requirements must be implemented before bonus features.
+- Project outputs are English: code, API routes, database names, Swagger/OpenAPI, docs, README, dashboard UI, and mobile UI.
+- User communication outside the project remains Turkish.
+- Device tokens and pairing codes are stored as hashes.
+- Sensitive data such as raw passwords and raw device tokens must not be persisted.
+- The MVP should be easy to run locally and demonstrate to a jury.
+- The detection approach is explainable and suitable for course evaluation.
 
 ## Out of Scope
 
@@ -87,54 +79,32 @@ People who are alone at home may fall and remain unable to request help. Simple 
 - Python microservice.
 - On-device AI model.
 - PDF export.
-- Production-level medical certification or emergency service integration.
+- Production medical certification or emergency service integration.
 
-## Minimum Viable Product Scope
+## Bonus Features Included
 
-- JWT login for `admin` and `caregiver`.
-- Device pairing with device token authorization.
-- Accelerometer and gyroscope upload from mobile.
-- PostgreSQL persistence through Prisma.
-- Threshold-based detection and inactivity escalation.
-- Mobile confirmation screen using English UI text.
-- Real-time dashboard with live readings and alert state.
-- Alert list, alert resolution, and CSV export.
-- Swagger/OpenAPI page and test scenarios.
-
-## Bonus Feature Classification
-
-Planned low-risk bonus features:
-
-- Swagger / OpenAPI integration.
-- Logging and error monitoring.
-- Automated tests.
+- Swagger/OpenAPI.
+- Logging with structured server logs.
+- Automated backend tests.
 - Advanced role-based authorization.
 - Socket.IO live data stream.
 - CSV export.
-- Docker Compose.
+- Docker Compose for PostgreSQL, backend, and dashboard.
 
-Optional stretch goals:
+## Optional Stretch Goals
 
-- Sensor sampling to reduce network requests.
+- Sensor sampling optimization.
 - Limited offline buffering in the mobile client.
 
-Excluded bonus features:
+## Current Demo Accounts
 
-- Camera capture.
-- Map tracking.
-- Raspberry Pi integration.
-- Python microservice.
-- On-device AI.
-- PDF export.
+Seed data provides demo accounts for the local/Docker demo:
 
-## Team Task Distribution Template
+- `admin@example.com`
+- `caregiver@example.com`
 
-- Backend developer: Express API, validation, Prisma integration, detection services, tests.
-- Dashboard developer: React views, charts, Socket.IO client, alert workflows.
-- Mobile developer: Expo app, device pairing, sensor collection, confirmation screen.
-- Documentation/demo owner: README, setup guide, demo flow, Postman collection, final checklist.
+The actual demo passwords are defined in the backend seed configuration and should be verified before the final demo.
 
 ## Next implementation step
 
-Create the backend Express TypeScript setup after user approval.
-
+Finalize the README and screenshot pass after the user adds final screenshots.

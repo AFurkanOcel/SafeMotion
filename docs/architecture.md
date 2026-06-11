@@ -1,135 +1,122 @@
 # SafeMotion Architecture
 
-## Overall Architecture
+## Overview
 
-SafeMotion has four main layers:
+SafeMotion has four main parts:
 
-- Mobile app: collects accelerometer and gyroscope readings, pairs with the backend, uploads sensor data, and shows the confirmation screen.
-- Backend API: validates requests, stores data, runs detection logic, manages authentication, and emits real-time events.
-- Database: stores users, monitored persons, devices, sensor readings, detection events, confirmation responses, alerts, and logs.
-- Web dashboard: shows live monitoring, alert status, historical alerts, and CSV export.
+- Mobile app: pairs with the backend, collects accelerometer and gyroscope data, uploads readings, and shows fall confirmation actions.
+- Backend API: validates requests, stores data, runs detection logic, manages JWT/device-token authentication, and emits Socket.IO events.
+- PostgreSQL database: stores users, monitored persons, devices, sensor readings, detection events, alerts, confirmation responses, and optional system logs.
+- Dashboard: lets caregivers manage monitored persons, generate pairing codes, view live readings, see alerts, resolve alerts, and export CSV data.
 
-## Component Relationship
+## Runtime Architecture
 
 ```text
-Mobile App
+Expo Mobile App
   -> REST API with device token
+  -> Socket.IO device room
   -> Sensor readings and confirmation responses
 
-Backend API
-  -> Validates requests
-  -> Stores data with Prisma
-  -> Runs detection services
-  -> Emits Socket.IO events
-
-PostgreSQL Database
-  -> Stores operational and time-series data
-
-Dashboard
+React Dashboard
   -> REST API with JWT
-  -> Socket.IO live events
-  -> Charts, tables, alert actions
-```
+  -> Socket.IO dashboard room
+  -> Monitored person, pairing, live chart, alerts, CSV export
 
-## Textual Data Flow
-
-1. A caregiver logs in to the dashboard and receives a JWT.
-2. The caregiver creates a monitored person.
-3. The caregiver generates a pairing code for a device.
-4. The mobile app submits the pairing code and receives a device token.
-5. The mobile app uploads timestamped accelerometer and gyroscope readings.
-6. The backend validates and stores the readings.
-7. The detection service evaluates the readings.
-8. The backend emits live sensor and status events to dashboard clients.
-9. If a fall is suspected, the mobile app receives or polls for a confirmation state.
-10. The user confirms safety or fails to respond.
-11. The backend closes the event as safe or creates a critical alert.
-12. The dashboard shows the alert live and allows the caregiver to resolve it.
-
-## Sensor Data Flow
-
-Sensor readings move through the system as follows:
-
-```text
-Accelerometer + Gyroscope
-  -> Mobile reading buffer
-  -> POST /api/v1/sensor-readings
+Express Backend
   -> Zod validation
-  -> Prisma write to SensorReading
-  -> Detection service
-  -> Socket.IO event: sensor.reading.created
-  -> Dashboard chart/table update
+  -> Prisma services
+  -> Detection and alert services
+  -> Socket.IO event publishing
+
+PostgreSQL
+  -> Persistent project data
 ```
 
-Each reading should include device identity, client timestamp, and numeric sensor axes. The backend should also record server receive time for audit and debugging.
+## Data Flow
 
-## Fall Suspicion and Confirmation Flow
+1. A caregiver signs up or logs in from the dashboard.
+2. The dashboard stores the JWT in the client session.
+3. The caregiver creates or selects a monitored person.
+4. The caregiver generates a temporary pairing code.
+5. The mobile app submits the pairing code and receives a device token.
+6. The mobile app uploads timestamped accelerometer and gyroscope readings.
+7. The backend validates the payload and stores a `SensorReading`.
+8. The detection service evaluates acceleration and rotation magnitudes.
+9. The backend emits live events for the dashboard.
+10. If a fall is suspected, the mobile app displays a confirmation panel.
+11. `SAFE` closes the event; `NEEDS_HELP` or no-response/inactivity creates an alert.
+12. The caregiver resolves the alert from the dashboard.
+
+## Detection Flow
 
 ```text
-High acceleration or rotation threshold
+SensorReading
+  -> calculate accelerationMagnitude and rotationMagnitude
+  -> compare with fall thresholds
   -> DetectionEvent: FALL_SUSPECTED
-  -> Socket.IO event: detection.fallSuspected
-  -> Mobile UI: "Are you okay?"
-  -> User taps "I'm safe"
-      -> ConfirmationResponse: SAFE_CONFIRMED
-      -> DetectionEvent closed
-      -> Dashboard receives detection.resolved
-  -> No response and low movement continues
+  -> mobile confirmation request
+  -> SAFE response
+      -> close event
+  -> NEEDS_HELP or no response with inactivity
       -> Alert: CRITICAL
-      -> Socket.IO event: alert.created
-      -> Caregiver resolves alert from dashboard
+      -> dashboard live alert
 ```
 
-The MVP uses threshold-based analysis because it is explainable, low-risk, and suitable for the term project rubric.
+The project uses threshold-based analysis because it is explainable, deterministic, and suitable for the course rubric.
 
-## Socket.IO Event Structure
+## Socket.IO Events
 
-Planned server-to-dashboard events:
+Server-to-dashboard events:
 
-- `sensor.reading.created`: emitted after valid sensor ingestion.
-- `device.status.updated`: emitted when a device pairs, becomes active, or becomes stale.
-- `detection.fallSuspected`: emitted when a fall suspicion is created.
-- `detection.resolved`: emitted when a suspicion is closed by confirmation.
-- `alert.created`: emitted when a critical alert is created.
-- `alert.resolved`: emitted when a caregiver resolves an alert.
+- `sensor.reading.created`
+- `device.status.updated`
+- `detection.fallSuspected`
+- `detection.inactivityDetected`
+- `detection.resolved`
+- `alert.created`
+- `alert.resolved`
 
-Planned server-to-mobile events:
+Server-to-mobile events:
 
-- `confirmation.requested`: tells the mobile app to show `Are you okay?`.
-- `confirmation.closed`: tells the mobile app the event no longer needs a response.
+- `confirmation.requested`
+- `confirmation.closed`
 
-Socket connections should authenticate with JWT for dashboard clients and device token for mobile clients.
+Dashboard sockets use JWT authentication. Mobile sockets use device token authentication.
 
 ## Authentication and Authorization
 
 - Dashboard users authenticate with email and password.
 - Passwords are hashed with bcrypt.
-- Successful login returns a JWT.
-- User roles are `admin` and `caregiver`.
-- `admin` can manage users and all monitored records.
-- `caregiver` can manage assigned monitored persons, devices, readings, and alerts.
-- Mobile devices do not use user roles. They authenticate with device tokens issued after pairing.
+- JWT protects dashboard APIs.
+- Roles are `ADMIN` and `CAREGIVER`.
+- `ADMIN` can access all monitored records.
+- `CAREGIVER` can access only assigned monitored persons and their related devices, readings, alerts, and exports.
+- Devices authenticate with device tokens after pairing.
+- A device token authorizes only device operations and is never treated as a user role.
 
-## Modular Backend Structure
+## Backend Modules
 
-Planned backend modules:
-
-- `config`: environment and app configuration.
-- `controllers`: HTTP request handlers.
-- `middleware`: authentication, authorization, error handling, validation.
+- `config`: environment, database, detection thresholds, logger.
+- `controllers`: Express request handlers.
+- `middleware`: auth, device auth, validation, request logging, errors.
 - `routes`: route definitions grouped by feature.
-- `schemas`: Zod request schemas.
-- `services`: business logic, detection logic, alert workflow.
-- `sockets`: Socket.IO authentication and event publishing.
-- `utils`: shared helpers, logger, response helpers.
-- `prisma`: database schema and migrations.
-- `tests`: automated tests.
+- `schemas`: Zod schemas.
+- `services`: business logic, Prisma access, detection, alerts, confirmations.
+- `sockets`: Socket.IO server, authentication, event emitters.
+- `utils`: token helpers and shared utilities.
+- `prisma`: schema and seed script.
+- `tests`: automated backend workflow tests.
 
-## Deployment Approach
+## Deployment and Local Demo
 
-The MVP should run locally first. Docker Compose is planned as a bonus phase for backend and PostgreSQL. Dashboard and mobile development servers will be run separately during development. Production deployment is not required for the term project.
+Docker Compose includes:
+
+- PostgreSQL on `localhost:5432`.
+- Backend on `localhost:3000`.
+- Dashboard on `localhost:5173`.
+
+The mobile app is run with Expo in LAN mode during physical phone testing. For a real phone, mobile environment values must use the computer's local Wi-Fi IP address instead of `localhost`.
 
 ## Next implementation step
 
-Create the backend Express TypeScript setup after user approval.
-
+Finalize the README and screenshot pass after the user adds final screenshots.

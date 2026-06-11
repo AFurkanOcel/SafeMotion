@@ -1,123 +1,129 @@
 # SafeMotion Demo Flow
 
-This demo flow is designed for a jury presentation. It shows the problem, technical value, and working system behavior in a clear sequence.
+This flow is designed for a jury presentation and shows the completed MVP from dashboard setup to mobile fall confirmation.
 
-## 1. Caregiver Login
+## 1. Start the System
+
+Run Docker Compose from the project root:
+
+```bash
+docker compose up --build
+```
+
+Open:
+
+- Dashboard: `http://localhost:5173`
+- Swagger: `http://localhost:3000/api-docs`
+
+## 2. Caregiver Login or Signup
 
 - Open the dashboard.
-- Log in as a caregiver.
-- Show that the dashboard uses English UI text.
-- Briefly explain that dashboard users authenticate with JWT.
+- Use the demo caregiver account or create a caregiver account from the signup screen.
+- Explain that public signup creates `CAREGIVER` accounts only.
+- Explain that JWT protects dashboard APIs.
 
-Expected result: caregiver reaches the monitoring dashboard.
+Expected result: caregiver reaches the dashboard.
 
-## 2. Monitored Person Creation
+## 3. Create or Select a Monitored Person
 
-- Create or open a monitored person named `Demo Person`.
-- Explain that the system does not classify the person by age or disability.
-- Emphasize that monitoring is based on motion data and confirmation response.
+- Create a monitored person such as `Demo Person`.
+- Select the person in the dashboard.
+- Explain that the system avoids sensitive category labels and monitors motion/confirmation state instead.
 
-Expected result: monitored person is ready for device pairing.
+Expected result: the selected monitored person is visible in the live dashboard flow.
 
-## 3. Device Pairing Code Creation
+## 4. Generate a Pairing Code
 
-- Generate a pairing code from the dashboard.
-- Explain that the pairing code is temporary and single-use.
-- Explain that mobile devices use device token authorization, not a user role.
+- Use the dashboard pairing panel.
+- Generate a temporary code for the selected monitored person.
+- Explain that the code is temporary and single-use.
+- Explain that devices authenticate with device tokens, not roles.
 
-Expected result: pairing code is visible for mobile pairing.
+Expected result: pairing code, expiry time, and device ID are visible.
 
-## 4. Mobile Pairing
+## 5. Pair the Mobile App
 
-- Open the mobile app.
+- Start the Expo mobile app in LAN mode.
 - Enter the pairing code.
-- Complete pairing and receive a device token.
+- Complete pairing.
 
-Expected result: mobile app shows paired status.
+Expected result: mobile app shows paired status and backend connection status.
 
-## 5. Sensor Monitoring Start
+## 6. Start Sensor Monitoring
 
-- Start mobile sensor monitoring.
-- The mobile app begins collecting accelerometer and gyroscope readings.
-- Readings are uploaded with timestamps.
+- Start monitoring in the mobile app.
+- The app sends accelerometer and gyroscope readings with timestamps.
 
-Expected result: backend accepts readings.
+Expected result: backend stores readings and emits live dashboard events.
 
-## 6. Live Dashboard Update
+## 7. Show Live Dashboard Updates
 
 - Return to the dashboard.
-- Show live sensor values in a chart or table.
-- Show device status as online or recently active.
+- Show selected monitored person, latest readings, live events, and alert area.
+- Explain the time-series chart/list.
 
-Expected result: dashboard updates without manual refresh.
+Expected result: readings update without manual refresh.
 
-## 7. Fall Simulation
+## 8. Trigger a Safe Fall Demo
 
-- Trigger a fall-like motion pattern through the mobile app or a controlled test action.
-- Explain the threshold-based detection approach.
+- Use the mobile `Send test fall reading` demo button.
+- Explain that this avoids unsafe physical phone drops while still using the backend detection pipeline.
 
-Expected result: backend creates a `FALL_SUSPECTED` detection event.
+Expected result: backend creates a `FALL_SUSPECTED` event and the mobile app displays the confirmation panel.
 
-## 8. Mobile Confirmation Screen
+## 9. Safe Confirmation Scenario
 
-- Show the mobile confirmation screen with `Are you okay?`.
-- Tap `I'm safe` for the first scenario.
+- Tap `I'm safe`.
+- Explain that the event closes as `SAFE_CONFIRMED`.
 
-Expected result: detection event closes as `SAFE_CONFIRMED`, and the dashboard updates.
+Expected result: dashboard shows the resolved detection state without creating a critical alert.
 
-## 9. No Response Scenario
+## 10. Need Help or No-Response Scenario
 
-- Trigger another fall-like event.
-- Do not respond to the mobile confirmation prompt.
-- Wait for the configured confirmation timeout and inactivity condition.
+- Trigger another demo fall reading.
+- Tap `Need help`, or leave the confirmation unanswered while inactivity continues.
 
-Expected result: backend records no response and escalates the event.
+Expected result: backend creates or escalates to a critical alert.
 
-## 10. Critical Alert Creation
+## 11. Resolve Alert
 
-- Show the dashboard receiving a live critical alert.
-- Explain that the alert appears because the user did not confirm safety and inactivity continued.
-
-Expected result: active critical alert is visible in the dashboard.
-
-## 11. Alert Resolve
-
-- Open the alert details.
+- Show the active alert banner on the dashboard.
 - Resolve the alert with a short note.
 
-Expected result: alert status changes to `RESOLVED`, and live dashboard status updates.
+Expected result: alert status changes to `RESOLVED`.
 
-## 12. CSV Export
+## 12. Export CSV
 
-- Use the dashboard export action or call the CSV export endpoint.
-- Show the downloaded alert history CSV.
+- Use the alert CSV export feature.
+- Explain that the export includes status, severity, timestamps, and resolution information.
 
-Expected result: CSV contains alert status, severity, timestamps, and resolution information.
+Expected result: `safemotion-alerts.csv` downloads.
 
-## 13. Swagger API Page Demonstration
+## 13. Swagger Demonstration
 
-- Open the Swagger / OpenAPI page.
-- Show endpoint groups for auth, monitored persons, devices, readings, confirmations, alerts, dashboard summary, and CSV export.
+- Open `http://localhost:3000/api-docs`.
+- Show auth, monitored person, device, sensor reading, confirmation, alert, and CSV endpoints.
 
 Expected result: API documentation is visible and understandable.
 
-## 14. Test Command Demonstration
+## 14. Automated Test Demonstration
 
-- If requested by the jury, run the automated backend tests.
-- Show passing tests for the core workflows.
+If requested, run:
 
-Expected result: tests support the reliability of the demo.
+```bash
+cd backend
+npm run test
+```
 
-## Demo Talking Points
+Expected result: automated backend tests pass.
 
-- SafeMotion uses a mobile phone as an IoT endpoint.
-- The MVP collects only required motion data.
-- The detection approach is explainable and suitable for the course scope.
-- Device token authorization keeps mobile devices separate from dashboard user roles.
-- Mandatory requirements are completed before bonus features.
-- Bonus features improve presentation quality without increasing project risk too much.
+## Physical Phone Notes
+
+- Computer and phone must be on the same Wi-Fi network.
+- Mobile `.env` must use the computer's Wi-Fi IP, not `localhost`.
+- Windows firewall may need to allow Node/Expo/backend network access.
+- Full phone testing is done after the final documentation and README pass.
 
 ## Next implementation step
 
-Create the backend Express TypeScript setup after user approval.
-
+Finalize the README and screenshot pass after the user adds final screenshots.

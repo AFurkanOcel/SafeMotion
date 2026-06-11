@@ -1,286 +1,247 @@
 # SafeMotion Data Model
 
-This document proposes a PostgreSQL + Prisma data model. Names are English and implementation-ready, but final Prisma syntax will be created in a later phase.
+SafeMotion uses PostgreSQL with Prisma. Database table and field names are English. Prisma maps models to snake_case table names.
 
 ## User
 
-Purpose: stores dashboard users who authenticate with JWT.
+Table: `users`
 
-Fields:
+Purpose: stores dashboard users.
 
-- `id`: UUID, primary key.
-- `email`: String, unique, required.
-- `passwordHash`: String, required.
-- `fullName`: String, required.
-- `role`: Enum `ADMIN` or `CAREGIVER`, required.
-- `isActive`: Boolean, default `true`.
-- `createdAt`: DateTime, default now.
-- `updatedAt`: DateTime, auto-updated.
+Key fields:
+
+- `id`: UUID primary key.
+- `email`: unique string.
+- `passwordHash`: hashed password.
+- `fullName`: display name.
+- `role`: `ADMIN` or `CAREGIVER`.
+- `isActive`: active account flag.
+- `createdAt`, `updatedAt`: timestamps.
 
 Relationships:
 
+- One caregiver has many monitored persons.
 - One user can create many monitored persons.
-- One caregiver can be assigned to many monitored persons.
 - One user can resolve many alerts.
 
-Recommended indexes:
+Indexes:
 
-- Unique index on `email`.
-- Index on `role`.
-- Index on `isActive`.
-
-Integrity notes:
-
-- Passwords must never be stored as plain text.
-- Email should be normalized before storage.
-- Role values must be controlled by an enum.
+- `email` unique.
+- `role`.
+- `isActive`.
 
 ## MonitoredPerson
 
-Purpose: represents the person being monitored by a caregiver.
+Table: `monitored_persons`
 
-Fields:
+Purpose: represents a person monitored by a caregiver.
 
-- `id`: UUID, primary key.
-- `displayName`: String, required.
-- `notes`: String, optional.
-- `caregiverId`: UUID, foreign key to `User`.
-- `createdById`: UUID, foreign key to `User`.
-- `isActive`: Boolean, default `true`.
-- `createdAt`: DateTime, default now.
-- `updatedAt`: DateTime, auto-updated.
+Key fields:
+
+- `id`: UUID primary key.
+- `displayName`: required display name.
+- `notes`: optional notes.
+- `caregiverId`: assigned caregiver.
+- `createdById`: creator user.
+- `isActive`: soft-active flag.
+- `createdAt`, `updatedAt`: timestamps.
 
 Relationships:
 
-- Belongs to one caregiver.
+- Belongs to a caregiver.
 - Has many devices.
-- Has many sensor readings through devices.
-- Has many detection events and alerts.
+- Has many sensor readings.
+- Has many detection events.
+- Has many alerts.
 
-Recommended indexes:
+Indexes:
 
-- Index on `caregiverId`.
-- Index on `isActive`.
-
-Integrity notes:
-
-- A monitored person should not be deleted if related alerts or readings exist; use soft deactivation.
-- The model does not require health-category labels.
+- `caregiverId`.
+- `createdById`.
+- `isActive`.
 
 ## Device
 
-Purpose: represents a mobile phone authorized to send sensor readings.
+Table: `devices`
 
-Fields:
+Purpose: represents a paired mobile phone authorized by device token.
 
-- `id`: UUID, primary key.
-- `monitoredPersonId`: UUID, foreign key to `MonitoredPerson`.
-- `deviceName`: String, required.
-- `platform`: Enum `IOS`, `ANDROID`, or `UNKNOWN`.
-- `deviceTokenHash`: String, unique, required after pairing.
-- `pairingCodeHash`: String, optional.
-- `pairingCodeExpiresAt`: DateTime, optional.
-- `lastSeenAt`: DateTime, optional.
-- `isActive`: Boolean, default `true`.
-- `createdAt`: DateTime, default now.
-- `updatedAt`: DateTime, auto-updated.
+Key fields:
+
+- `id`: UUID primary key.
+- `monitoredPersonId`: owner monitored person.
+- `deviceName`: phone/device label.
+- `platform`: `IOS`, `ANDROID`, or `UNKNOWN`.
+- `deviceTokenHash`: hash of the raw device token.
+- `pairingCodeHash`: hash of a temporary pairing code.
+- `pairingCodeExpiresAt`: pairing expiration timestamp.
+- `lastSeenAt`: latest authenticated device activity.
+- `isActive`: active device flag.
+- `createdAt`, `updatedAt`: timestamps.
 
 Relationships:
 
 - Belongs to one monitored person.
 - Has many sensor readings.
 - Has many detection events.
+- Has many confirmation responses.
 
-Recommended indexes:
+Indexes:
 
-- Unique index on `deviceTokenHash`.
-- Index on `monitoredPersonId`.
-- Index on `lastSeenAt`.
-- Index on `isActive`.
+- `deviceTokenHash` unique.
+- `monitoredPersonId`.
+- `pairingCodeHash`.
+- `lastSeenAt`.
+- `isActive`.
 
 Integrity notes:
 
 - Device access is device token authorization, not a user role.
-- Store token hashes, not raw device tokens.
-- Pairing codes should expire and should be single-use.
+- Raw tokens and raw pairing codes are not stored.
+- Pairing codes are temporary and single-use.
 
 ## SensorReading
 
-Purpose: stores timestamped accelerometer and gyroscope samples.
+Table: `sensor_readings`
 
-Fields:
+Purpose: stores timestamped accelerometer and gyroscope readings.
 
-- `id`: UUID, primary key.
-- `deviceId`: UUID, foreign key to `Device`.
-- `monitoredPersonId`: UUID, foreign key to `MonitoredPerson`.
-- `recordedAt`: DateTime, client-side timestamp.
-- `receivedAt`: DateTime, server-side timestamp.
-- `accelerometerX`: Float, required.
-- `accelerometerY`: Float, required.
-- `accelerometerZ`: Float, required.
-- `gyroscopeX`: Float, required.
-- `gyroscopeY`: Float, required.
-- `gyroscopeZ`: Float, required.
-- `accelerationMagnitude`: Float, optional calculated value.
-- `rotationMagnitude`: Float, optional calculated value.
+Key fields:
 
-Relationships:
+- `id`: UUID primary key.
+- `deviceId`: paired device.
+- `monitoredPersonId`: monitored person.
+- `recordedAt`: client timestamp.
+- `receivedAt`: server timestamp.
+- `accelerometerX`, `accelerometerY`, `accelerometerZ`: accelerometer axes.
+- `gyroscopeX`, `gyroscopeY`, `gyroscopeZ`: gyroscope axes.
+- `accelerationMagnitude`: calculated acceleration magnitude.
+- `rotationMagnitude`: calculated rotation magnitude.
 
-- Belongs to one device.
-- Belongs to one monitored person.
-- Can be referenced by detection events as a trigger reading.
+Indexes:
 
-Recommended indexes:
-
-- Composite index on `deviceId` and `recordedAt`.
-- Composite index on `monitoredPersonId` and `recordedAt`.
-- Index on `receivedAt`.
+- Composite `deviceId`, `recordedAt`.
+- Composite `monitoredPersonId`, `recordedAt`.
+- `receivedAt`.
 
 Integrity notes:
 
-- Numeric values should be validated before insertion.
-- `recordedAt` should not be too far in the future.
-- `monitoredPersonId` should match the device owner to prevent forged relationships.
+- The monitored person is derived from the authenticated device.
+- Numeric sensor values are validated before storage.
 
 ## DetectionEvent
 
-Purpose: records fall suspicion and inactivity detection lifecycle.
+Table: `detection_events`
 
-Fields:
+Purpose: stores fall suspicion and inactivity lifecycle events.
 
-- `id`: UUID, primary key.
-- `monitoredPersonId`: UUID, foreign key to `MonitoredPerson`.
-- `deviceId`: UUID, foreign key to `Device`.
-- `triggerReadingId`: UUID, optional foreign key to `SensorReading`.
-- `type`: Enum `FALL_SUSPECTED` or `INACTIVITY_DETECTED`.
-- `status`: Enum `OPEN`, `SAFE_CONFIRMED`, `ESCALATED`, `DISMISSED`.
-- `severity`: Enum `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`.
-- `startedAt`: DateTime, required.
-- `resolvedAt`: DateTime, optional.
-- `metadata`: Json, optional.
-- `createdAt`: DateTime, default now.
-- `updatedAt`: DateTime, auto-updated.
+Key fields:
 
-Relationships:
+- `id`: UUID primary key.
+- `monitoredPersonId`: related monitored person.
+- `deviceId`: related device.
+- `triggerReadingId`: optional sensor reading that triggered the event.
+- `type`: `FALL_SUSPECTED` or `INACTIVITY_DETECTED`.
+- `status`: `OPEN`, `SAFE_CONFIRMED`, `ESCALATED`, or `DISMISSED`.
+- `severity`: `LOW`, `MEDIUM`, `HIGH`, or `CRITICAL`.
+- `startedAt`: event start timestamp.
+- `resolvedAt`: optional resolution timestamp.
+- `metadata`: JSON details such as thresholds and linked event IDs.
+- `createdAt`, `updatedAt`: timestamps.
 
-- Belongs to one monitored person.
-- Belongs to one device.
-- Can have one or more confirmation responses.
-- Can create one alert.
+Indexes:
 
-Recommended indexes:
-
-- Index on `monitoredPersonId`.
-- Index on `deviceId`.
-- Index on `type`.
-- Index on `status`.
-- Composite index on `monitoredPersonId` and `startedAt`.
+- `monitoredPersonId`.
+- `deviceId`.
+- `triggerReadingId`.
+- `type`.
+- `status`.
+- Composite `monitoredPersonId`, `startedAt`.
 
 Integrity notes:
 
-- An open fall event should not create duplicate critical alerts for the same detection window.
-- `resolvedAt` is required when status is no longer `OPEN`.
+- Open fall events are reused to avoid duplicate fall windows.
+- Inactivity events link back to the related fall event through metadata.
 
 ## Alert
 
-Purpose: stores caregiver-visible risk alerts.
+Table: `alerts`
 
-Fields:
+Purpose: stores caregiver-visible alerts.
 
-- `id`: UUID, primary key.
-- `monitoredPersonId`: UUID, foreign key to `MonitoredPerson`.
-- `detectionEventId`: UUID, optional foreign key to `DetectionEvent`.
-- `status`: Enum `ACTIVE` or `RESOLVED`.
-- `severity`: Enum `MEDIUM`, `HIGH`, or `CRITICAL`.
-- `title`: String, required.
-- `message`: String, required.
-- `createdAt`: DateTime, default now.
-- `resolvedAt`: DateTime, optional.
-- `resolvedById`: UUID, optional foreign key to `User`.
-- `resolutionNote`: String, optional.
+Key fields:
 
-Relationships:
+- `id`: UUID primary key.
+- `monitoredPersonId`: related monitored person.
+- `detectionEventId`: optional unique detection event link.
+- `status`: `ACTIVE` or `RESOLVED`.
+- `severity`: `LOW`, `MEDIUM`, `HIGH`, or `CRITICAL`.
+- `title`: alert title.
+- `message`: alert message.
+- `createdAt`: creation timestamp.
+- `resolvedAt`: optional resolution timestamp.
+- `resolvedById`: optional user who resolved the alert.
+- `resolutionNote`: optional note.
 
-- Belongs to one monitored person.
-- Optionally belongs to one detection event.
-- Optionally resolved by one user.
+Indexes:
 
-Recommended indexes:
-
-- Index on `status`.
-- Index on `severity`.
-- Composite index on `monitoredPersonId` and `createdAt`.
-- Index on `resolvedById`.
-
-Integrity notes:
-
-- `resolvedAt` and `resolvedById` are required when status is `RESOLVED`.
-- Active alerts should be visible in dashboard summary and live events.
+- `status`.
+- `severity`.
+- Composite `monitoredPersonId`, `createdAt`.
+- `resolvedById`.
 
 ## ConfirmationResponse
 
-Purpose: stores mobile responses to a fall confirmation request.
+Table: `confirmation_responses`
 
-Fields:
+Purpose: stores mobile responses to fall confirmation requests.
 
-- `id`: UUID, primary key.
-- `detectionEventId`: UUID, foreign key to `DetectionEvent`.
-- `deviceId`: UUID, foreign key to `Device`.
-- `response`: Enum `SAFE`, `NEEDS_HELP`, `NO_RESPONSE`.
-- `respondedAt`: DateTime, required.
-- `createdAt`: DateTime, default now.
+Key fields:
 
-Relationships:
+- `id`: UUID primary key.
+- `detectionEventId`: related detection event.
+- `deviceId`: responding device.
+- `response`: `SAFE`, `NEEDS_HELP`, or `NO_RESPONSE`.
+- `respondedAt`: response timestamp.
+- `createdAt`: creation timestamp.
 
-- Belongs to one detection event.
-- Belongs to one device.
+Indexes:
 
-Recommended indexes:
-
-- Index on `detectionEventId`.
-- Index on `deviceId`.
-- Index on `respondedAt`.
+- `detectionEventId`.
+- `deviceId`.
+- `respondedAt`.
 
 Integrity notes:
 
-- Only the paired device for the detection event should submit the response.
-- `NO_RESPONSE` can be created by the backend timeout worker or service.
+- Only the device linked to the detection event can submit the response.
+- `NO_RESPONSE` is created by backend escalation logic.
 
 ## SystemLog
 
-Purpose: optional operational audit and debugging log.
+Table: `system_logs`
 
-Fields:
+Purpose: optional structured operational log storage.
 
-- `id`: UUID, primary key.
-- `actorUserId`: UUID, optional foreign key to `User`.
-- `deviceId`: UUID, optional foreign key to `Device`.
-- `action`: String, required.
-- `entityType`: String, optional.
-- `entityId`: UUID, optional.
-- `level`: Enum `INFO`, `WARN`, `ERROR`.
-- `metadata`: Json, optional.
-- `createdAt`: DateTime, default now.
+Key fields:
 
-Relationships:
+- `id`: UUID primary key.
+- `actorUserId`: optional dashboard user.
+- `deviceId`: optional device.
+- `action`: action name.
+- `entityType`: optional entity type.
+- `entityId`: optional entity ID.
+- `level`: `INFO`, `WARN`, or `ERROR`.
+- `metadata`: optional JSON payload.
+- `createdAt`: timestamp.
 
-- Optionally belongs to one user.
-- Optionally belongs to one device.
+Indexes:
 
-Recommended indexes:
-
-- Index on `actorUserId`.
-- Index on `deviceId`.
-- Index on `action`.
-- Index on `level`.
-- Index on `createdAt`.
-
-Integrity notes:
-
-- Logs should not store passwords, raw tokens, or unnecessary personal data.
-- Application logging can start with Pino and add database logs only when needed.
+- `actorUserId`.
+- `deviceId`.
+- `action`.
+- `level`.
+- `createdAt`.
 
 ## Next implementation step
 
-Create the backend Express TypeScript setup after user approval.
-
+Finalize the README and screenshot pass after the user adds final screenshots.

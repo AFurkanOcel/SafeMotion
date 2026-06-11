@@ -1,6 +1,6 @@
 # SafeMotion Roadmap
 
-This roadmap has exactly 22 ordered phases. Each phase should be completed, checked, and committed before the next phase starts.
+This roadmap records the original 22 ordered implementation phases. Each phase is completed, checked, and committed before the next phase starts. Final README work is intentionally handled last after screenshots are available.
 
 ## 1. Documentation and planning
 
@@ -184,11 +184,11 @@ This roadmap has exactly 22 ordered phases. Each phase should be completed, chec
 
 ## 21. Docker Compose
 
-- Work to do: add Docker Compose for backend and PostgreSQL.
-- Expected output: backend and database can run with Docker Compose.
+- Work to do: add Docker Compose for PostgreSQL, backend, and dashboard.
+- Expected output: database, backend, and dashboard can run with Docker Compose.
 - Suggested commit: `Add Docker Compose setup`
 - Codex task boundary: local container setup only.
-- Tests: run Docker Compose and backend health check.
+- Tests: run Docker Compose config, image build, and backend/dashboard health checks.
 - Type: bonus.
 
 ## 22. README, setup guide and final demo documentation
@@ -200,7 +200,19 @@ This roadmap has exactly 22 ordered phases. Each phase should be completed, chec
 - Tests: run final checklist and demo rehearsal.
 - Type: final polish.
 
+## Additional Finalization Steps
+
+After the original 22 phases, the project received a focused finalization pass:
+
+- Monitored person backend API and dashboard management.
+- Dashboard pairing workflow.
+- Dashboard live demo polish.
+- Mobile branding, LAN preparation, and demo fall trigger.
+- Alert and confirmation demo hardening.
+- Backend workflow test expansion.
+- Optional bonus packaging with dashboard Docker Compose support.
+- Final documentation update without README.
+
 ## Next implementation step
 
-Create the backend Express TypeScript setup after user approval.
-
+Finalize the README and screenshot pass after the user adds final screenshots.
