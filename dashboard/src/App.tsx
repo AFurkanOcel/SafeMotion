@@ -58,6 +58,16 @@ const readStoredUser = () => {
   return JSON.parse(storedUser) as AuthUser;
 };
 
+const getPayloadMonitoredPersonId = (payload: unknown) => {
+  if (!payload || typeof payload !== "object" || !("monitoredPersonId" in payload)) {
+    return null;
+  }
+
+  const monitoredPersonId = (payload as { monitoredPersonId?: unknown }).monitoredPersonId;
+
+  return typeof monitoredPersonId === "string" ? monitoredPersonId : null;
+};
+
 export const App = () => {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_STORAGE_KEY));
   const [user, setUser] = useState<AuthUser | null>(() => readStoredUser());
@@ -182,6 +192,18 @@ export const App = () => {
       void refreshAlerts().catch(() => undefined);
     }
   }, [events, token]);
+
+  useEffect(() => {
+    const latestEvent = events[0];
+
+    if (!latestEvent || latestEvent.name !== "sensor.reading.created" || !selectedMonitoredPersonId) {
+      return;
+    }
+
+    if (getPayloadMonitoredPersonId(latestEvent.payload) === selectedMonitoredPersonId) {
+      void refreshReadings().catch((error) => setStatusMessage(error instanceof Error ? error.message : "Reading refresh failed"));
+    }
+  }, [events, selectedMonitoredPersonId]);
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
