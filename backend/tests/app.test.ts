@@ -21,6 +21,8 @@ describe("SafeMotion API app", () => {
     expect(response.body.info.title).toBe("SafeMotion API");
     expect(response.body.paths).toHaveProperty("/auth/login");
     expect(response.body.paths).toHaveProperty("/auth/signup");
+    expect(response.body.paths).toHaveProperty("/monitored-persons");
+    expect(response.body.paths).toHaveProperty("/monitored-persons/{id}");
     expect(response.body.paths).toHaveProperty("/devices/pair");
     expect(response.body.paths).toHaveProperty("/sensor-readings");
     expect(response.body.components.securitySchemes).toHaveProperty("deviceTokenAuth");
@@ -50,6 +52,12 @@ describe("SafeMotion API app", () => {
 
   it("requires JWT for protected alert routes", async () => {
     const response = await request(app).get("/api/v1/alerts").expect(401);
+
+    expect(response.body.error.code).toBe("UNAUTHORIZED");
+  });
+
+  it("requires JWT for monitored person routes", async () => {
+    const response = await request(app).get("/api/v1/monitored-persons").expect(401);
 
     expect(response.body.error.code).toBe("UNAUTHORIZED");
   });

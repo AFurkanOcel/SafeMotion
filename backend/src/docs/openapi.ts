@@ -15,6 +15,7 @@ export const openApiDocument = {
   tags: [
     { name: "Health" },
     { name: "Auth" },
+    { name: "Monitored Persons" },
     { name: "Devices" },
     { name: "Sensor Readings" },
     { name: "Confirmation Responses" },
@@ -58,6 +59,20 @@ export const openApiDocument = {
           role: { type: "string", enum: ["ADMIN", "CAREGIVER"] }
         },
         required: ["id", "email", "fullName", "role"]
+      },
+      MonitoredPerson: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          displayName: { type: "string", example: "Demo Patient" },
+          notes: { type: "string", nullable: true },
+          caregiverId: { type: "string", format: "uuid" },
+          createdById: { type: "string", format: "uuid" },
+          isActive: { type: "boolean" },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" }
+        },
+        required: ["id", "displayName", "caregiverId", "createdById", "isActive", "createdAt", "updatedAt"]
       },
       SensorVector: {
         type: "object",
@@ -198,6 +213,77 @@ export const openApiDocument = {
         responses: {
           "200": { description: "Current user" },
           "401": { description: "JWT is missing or invalid" }
+        }
+      }
+    },
+    "/monitored-persons": {
+      get: {
+        tags: ["Monitored Persons"],
+        summary: "List monitored persons available to the current dashboard user",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          "200": {
+            description: "Monitored person list",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    items: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/MonitoredPerson" }
+                    }
+                  },
+                  required: ["items"]
+                }
+              }
+            }
+          },
+          "401": { description: "JWT is missing or invalid" }
+        }
+      },
+      post: {
+        tags: ["Monitored Persons"],
+        summary: "Create a monitored person",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  displayName: { type: "string", minLength: 2, example: "Demo Patient" },
+                  notes: { type: "string", maxLength: 500, example: "Lives alone and carries the paired phone." },
+                  caregiverId: {
+                    type: "string",
+                    format: "uuid",
+                    description: "Optional for admins. Caregivers can only create monitored persons for themselves."
+                  }
+                },
+                required: ["displayName"]
+              }
+            }
+          }
+        },
+        responses: {
+          "201": { description: "Monitored person created" },
+          "400": { description: "Invalid request body" },
+          "403": { description: "User cannot assign this monitored person" },
+          "404": { description: "Caregiver was not found" }
+        }
+      }
+    },
+    "/monitored-persons/{id}": {
+      get: {
+        tags: ["Monitored Persons"],
+        summary: "Get a monitored person by ID",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        responses: {
+          "200": { description: "Monitored person details" },
+          "403": { description: "User cannot access this monitored person" },
+          "404": { description: "Monitored person not found" }
         }
       }
     },

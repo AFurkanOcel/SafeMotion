@@ -2,6 +2,7 @@ import { createSensorReadingSchema } from "../src/schemas/sensor-reading.schemas
 import { createConfirmationResponseSchema } from "../src/schemas/confirmation.schemas.js";
 import { pairDeviceSchema } from "../src/schemas/device.schemas.js";
 import { signupSchema } from "../src/schemas/auth.schemas.js";
+import { createMonitoredPersonSchema, monitoredPersonIdParamSchema } from "../src/schemas/monitored-person.schemas.js";
 
 describe("request schemas", () => {
   it("accepts a valid accelerometer and gyroscope reading", () => {
@@ -67,5 +68,26 @@ describe("request schemas", () => {
     });
 
     expect(result.success).toBe(true);
+  });
+
+  it("accepts monitored person creation details", () => {
+    const result = createMonitoredPersonSchema.safeParse({
+      body: {
+        displayName: "Demo Patient",
+        notes: "Lives alone and carries the paired phone."
+      }
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects invalid monitored person IDs", () => {
+    const result = monitoredPersonIdParamSchema.safeParse({
+      params: {
+        id: "not-a-uuid"
+      }
+    });
+
+    expect(result.success).toBe(false);
   });
 });

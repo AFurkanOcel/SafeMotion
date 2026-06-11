@@ -12,6 +12,7 @@ import { databaseRouter } from "./routes/database.routes.js";
 import { deviceRouter } from "./routes/device.routes.js";
 import { docsRouter } from "./routes/docs.routes.js";
 import { healthRouter } from "./routes/health.routes.js";
+import { monitoredPersonRouter } from "./routes/monitored-person.routes.js";
 import { sensorReadingRouter } from "./routes/sensor-reading.routes.js";
 
 export const createApp = () => {
@@ -33,6 +34,7 @@ export const createApp = () => {
   app.use("/api/v1/confirmation-responses", confirmationRouter);
   app.use("/api/v1/devices", deviceRouter);
   app.use("/api/v1/health", healthRouter);
+  app.use("/api/v1/monitored-persons", monitoredPersonRouter);
   app.use("/api/v1/sensor-readings", sensorReadingRouter);
   app.use("/api/v1/database", databaseRouter);
 
