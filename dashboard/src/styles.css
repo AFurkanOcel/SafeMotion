@@ -20,7 +20,8 @@ body {
 }
 
 button,
-input {
+input,
+textarea {
   font: inherit;
 }
 
@@ -59,6 +60,15 @@ a {
 input {
   width: 100%;
   min-height: 38px;
+  border: 1px solid #bdd1e5;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+textarea {
+  width: 100%;
+  min-height: 94px;
+  resize: vertical;
   border: 1px solid #bdd1e5;
   border-radius: 6px;
   padding: 8px 10px;
@@ -297,7 +307,7 @@ h2 {
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -350,6 +360,81 @@ h2 {
   color: #536f8f;
   font-size: 14px;
   font-weight: 700;
+}
+
+.people-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+  gap: 16px;
+}
+
+.person-list {
+  display: grid;
+  gap: 10px;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.person-row {
+  justify-content: space-between;
+  width: 100%;
+  min-height: 76px;
+  padding: 12px;
+  text-align: left;
+}
+
+.person-row span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.person-row strong,
+.person-row small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.person-row strong {
+  color: #10243f;
+  font-size: 15px;
+}
+
+.person-row small {
+  color: #617995;
+  font-size: 12px;
+}
+
+.person-row-active {
+  border-color: #1261a6;
+  background: #eef7ff;
+}
+
+.person-form {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.person-form .panel-header {
+  margin-bottom: 0;
+}
+
+.person-form > button {
+  color: #ffffff;
+  background: #1261a6;
+  border-color: #1261a6;
+}
+
+.empty-state {
+  margin: 0;
+  border: 1px dashed #bdd1e5;
+  border-radius: 8px;
+  padding: 18px;
+  color: #536f8f;
+  background: #f8fbff;
+  line-height: 1.5;
 }
 
 .workspace {
@@ -448,6 +533,7 @@ td {
   }
 
   .topbar,
+  .people-layout,
   .workspace {
     align-items: stretch;
     grid-template-columns: 1fr;

@@ -12,6 +12,17 @@ export type LoginResponse = {
 
 export type SignupResponse = LoginResponse;
 
+export type MonitoredPerson = {
+  id: string;
+  displayName: string;
+  notes: string | null;
+  caregiverId: string;
+  createdById: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type AlertStatus = "ACTIVE" | "RESOLVED";
 export type AlertSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 

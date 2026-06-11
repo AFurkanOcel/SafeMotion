@@ -4,7 +4,9 @@ import {
   CheckCircle2,
   Download,
   LogOut,
+  Plus,
   RefreshCcw,
+  Users,
   Wifi,
   WifiOff
 } from "lucide-react";
@@ -23,10 +25,11 @@ import {
 import { exportAlertsCsv, getAlerts, resolveAlert } from "./api/alerts";
 import { login, signup } from "./api/auth";
 import { getHealthStatus } from "./api/health";
+import { createMonitoredPerson, getMonitoredPersons } from "./api/monitoredPersons";
 import { getSensorReadings } from "./api/sensorReadings";
 import { API_BASE_URL } from "./config";
 import { useDashboardSocket } from "./hooks/useDashboardSocket";
-import type { AlertItem, AuthUser, SensorReading } from "./types";
+import type { AlertItem, AuthUser, MonitoredPerson, SensorReading } from "./types";
 
 type HealthState = "checking" | "online" | "offline";
 type AuthMode = "signin" | "signup";
@@ -63,12 +66,17 @@ export const App = () => {
   const [healthState, setHealthState] = useState<HealthState>("checking");
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [readings, setReadings] = useState<SensorReading[]>([]);
-  const [monitoredPersonId, setMonitoredPersonId] = useState("");
+  const [monitoredPersons, setMonitoredPersons] = useState<MonitoredPerson[]>([]);
+  const [selectedMonitoredPersonId, setSelectedMonitoredPersonId] = useState("");
+  const [newMonitoredPersonName, setNewMonitoredPersonName] = useState("");
+  const [newMonitoredPersonNotes, setNewMonitoredPersonNotes] = useState("");
+  const [personFormError, setPersonFormError] = useState("");
   const [statusMessage, setStatusMessage] = useState("Ready");
   const { events, isConnected } = useDashboardSocket(token);
 
   const activeAlertCount = useMemo(() => alerts.filter((alert) => alert.status === "ACTIVE").length, [alerts]);
   const latestReading = readings[0];
+  const selectedMonitoredPerson = monitoredPersons.find((person) => person.id === selectedMonitoredPersonId) ?? null;
 
   const chartData = useMemo(
     () =>
@@ -105,12 +113,25 @@ export const App = () => {
     setAlerts(result.items);
   };
 
-  const refreshReadings = async () => {
-    if (!token || !monitoredPersonId) {
+  const refreshMonitoredPersons = async () => {
+    if (!token) {
       return;
     }
 
-    const result = await getSensorReadings(token, monitoredPersonId);
+    const result = await getMonitoredPersons(token);
+    setMonitoredPersons(result.items);
+
+    if (!selectedMonitoredPersonId && result.items[0]) {
+      setSelectedMonitoredPersonId(result.items[0].id);
+    }
+  };
+
+  const refreshReadings = async () => {
+    if (!token || !selectedMonitoredPersonId) {
+      return;
+    }
+
+    const result = await getSensorReadings(token, selectedMonitoredPersonId);
     setReadings(result.items);
   };
 
@@ -120,7 +141,19 @@ export const App = () => {
     }
 
     void refreshAlerts().catch((error) => setStatusMessage(error instanceof Error ? error.message : "Alert refresh failed"));
+    void refreshMonitoredPersons().catch((error) =>
+      setStatusMessage(error instanceof Error ? error.message : "Monitored person refresh failed")
+    );
   }, [token]);
+
+  useEffect(() => {
+    if (!token || !selectedMonitoredPersonId) {
+      setReadings([]);
+      return;
+    }
+
+    void refreshReadings().catch((error) => setStatusMessage(error instanceof Error ? error.message : "Reading refresh failed"));
+  }, [selectedMonitoredPersonId, token]);
 
   useEffect(() => {
     const alertEvent = events.find((event) => event.name === "alert.created" || event.name === "alert.resolved");
@@ -173,8 +206,33 @@ export const App = () => {
     setUser(null);
     setAlerts([]);
     setReadings([]);
+    setMonitoredPersons([]);
+    setSelectedMonitoredPersonId("");
     setPassword("");
     setStatusMessage("Signed out");
+  };
+
+  const handleCreateMonitoredPerson = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!token) {
+      return;
+    }
+
+    setPersonFormError("");
+    setStatusMessage("Creating monitored person");
+
+    try {
+      const monitoredPerson = await createMonitoredPerson(token, newMonitoredPersonName, newMonitoredPersonNotes);
+      setMonitoredPersons((current) => [monitoredPerson, ...current]);
+      setSelectedMonitoredPersonId(monitoredPerson.id);
+      setNewMonitoredPersonName("");
+      setNewMonitoredPersonNotes("");
+      setStatusMessage("Monitored person created");
+    } catch (error) {
+      setPersonFormError(error instanceof Error ? error.message : "Monitored person creation failed");
+      setStatusMessage("Monitored person creation failed");
+    }
   };
 
   const handleResolveAlert = async (alertId: string) => {
@@ -284,6 +342,7 @@ export const App = () => {
         </div>
         <nav className="nav-list" aria-label="Dashboard sections">
           <a href="#overview">Overview</a>
+          <a href="#people">People</a>
           <a href="#monitoring">Live Monitoring</a>
           <a href="#alerts">Alerts</a>
           <a href="#events">Events</a>
@@ -313,6 +372,13 @@ export const App = () => {
 
         <section className="summary-grid" id="overview" aria-label="Dashboard summary">
           <article className="metric">
+            <Users aria-hidden="true" />
+            <div>
+              <p>Selected person</p>
+              <strong>{selectedMonitoredPerson?.displayName ?? "None selected"}</strong>
+            </div>
+          </article>
+          <article className="metric">
             <Activity aria-hidden="true" />
             <div>
               <p>Latest acceleration</p>
@@ -335,16 +401,76 @@ export const App = () => {
           </article>
         </section>
 
+        <section className="people-layout" id="people">
+          <div className="panel">
+            <div className="panel-header">
+              <h2>Monitored persons</h2>
+              <button type="button" onClick={() => void refreshMonitoredPersons()}>
+                <RefreshCcw aria-hidden="true" />
+                Refresh
+              </button>
+            </div>
+            <div className="person-list">
+              {monitoredPersons.length ? (
+                monitoredPersons.map((person) => (
+                  <button
+                    key={person.id}
+                    className={`person-row ${person.id === selectedMonitoredPersonId ? "person-row-active" : ""}`}
+                    type="button"
+                    onClick={() => setSelectedMonitoredPersonId(person.id)}
+                  >
+                    <span>
+                      <strong>{person.displayName}</strong>
+                      <small>{person.notes || "No notes"}</small>
+                    </span>
+                    <small>{person.id}</small>
+                  </button>
+                ))
+              ) : (
+                <p className="empty-state">No monitored persons yet. Create one to start the demo flow.</p>
+              )}
+            </div>
+          </div>
+
+          <form className="panel person-form" onSubmit={handleCreateMonitoredPerson}>
+            <div className="panel-header">
+              <h2>Create monitored person</h2>
+              <Plus aria-hidden="true" />
+            </div>
+            <label>
+              Display name
+              <input
+                value={newMonitoredPersonName}
+                onChange={(event) => setNewMonitoredPersonName(event.target.value)}
+                type="text"
+                placeholder="Demo Patient"
+                required
+              />
+            </label>
+            <label>
+              Notes
+              <textarea
+                value={newMonitoredPersonNotes}
+                onChange={(event) => setNewMonitoredPersonNotes(event.target.value)}
+                placeholder="Lives alone and carries the paired phone."
+                maxLength={500}
+              />
+            </label>
+            {personFormError ? <p className="form-error">{personFormError}</p> : null}
+            <button type="submit">
+              <Plus aria-hidden="true" />
+              Create person
+            </button>
+          </form>
+        </section>
+
         <section className="toolbar">
-          <label>
-            Monitored person ID
-            <input
-              value={monitoredPersonId}
-              onChange={(event) => setMonitoredPersonId(event.target.value)}
-              placeholder="UUID"
-            />
-          </label>
-          <button type="button" onClick={() => void refreshReadings()} disabled={!monitoredPersonId}>
+          <span>
+            {selectedMonitoredPerson
+              ? `Monitoring ${selectedMonitoredPerson.displayName}`
+              : "Select or create a monitored person to load readings"}
+          </span>
+          <button type="button" onClick={() => void refreshReadings()} disabled={!selectedMonitoredPersonId}>
             <RefreshCcw aria-hidden="true" />
             Refresh readings
           </button>
