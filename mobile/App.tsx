@@ -52,6 +52,7 @@ export default function App() {
   const [isPairing, setIsPairing] = useState(false);
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [isResponding, setIsResponding] = useState(false);
+  const [isSendingDemoFall, setIsSendingDemoFall] = useState(false);
   const [accelerometer, setAccelerometer] = useState<MotionVector>(emptyVector);
   const [gyroscope, setGyroscope] = useState<MotionVector>(emptyVector);
   const [latestUpload, setLatestUpload] = useState<SensorReadingResponse | null>(null);
@@ -248,6 +249,47 @@ export default function App() {
     }
   };
 
+  const handleSendDemoFallReading = async () => {
+    if (!session) {
+      return;
+    }
+
+    setIsSendingDemoFall(true);
+    setStatus("Sending demo fall reading");
+
+    try {
+      const result = await uploadSensorReading(session.deviceToken, {
+        recordedAt: new Date().toISOString(),
+        accelerometer: {
+          x: 0,
+          y: 0,
+          z: 28
+        },
+        gyroscope: {
+          x: 0,
+          y: 0,
+          z: 9.5
+        }
+      });
+
+      setLatestUpload(result);
+      setAccelerometer({ x: 0, y: 0, z: 28 });
+      setGyroscope({ x: 0, y: 0, z: 9.5 });
+      setStatus(`Demo upload accepted: ${result.detectionStatus}`);
+
+      if (result.detectionStatus === "FALL_SUSPECTED") {
+        const confirmation = await getActiveConfirmation(session.deviceToken);
+        setActiveConfirmation(confirmation);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Demo fall upload failed";
+      setStatus(message);
+      Alert.alert("Demo fall failed", message);
+    } finally {
+      setIsSendingDemoFall(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -350,6 +392,21 @@ export default function App() {
                 </Text>
                 <Pressable style={isMonitoring ? styles.dangerButton : styles.primaryButton} onPress={toggleMonitoring}>
                   <Text style={styles.primaryButtonText}>{isMonitoring ? "Stop monitoring" : "Start monitoring"}</Text>
+                </Pressable>
+              </View>
+              <View style={styles.demoPanel}>
+                <Text style={styles.sectionTitle}>Demo fall trigger</Text>
+                <Text style={styles.description}>
+                  Send one controlled test reading that crosses the fall detection threshold.
+                </Text>
+                <Pressable
+                  style={[styles.warningButton, isSendingDemoFall && styles.disabledButton]}
+                  onPress={() => void handleSendDemoFallReading()}
+                  disabled={isSendingDemoFall}
+                >
+                  <Text style={styles.primaryButtonText}>
+                    {isSendingDemoFall ? "Sending demo reading..." : "Send test fall reading"}
+                  </Text>
                 </Pressable>
               </View>
               <View style={styles.infoItem}>
@@ -558,6 +615,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     backgroundColor: "#b42318"
   },
+  warningButton: {
+    alignItems: "center",
+    borderRadius: 8,
+    paddingVertical: 14,
+    backgroundColor: "#8a4b05"
+  },
   safeButton: {
     flex: 1,
     alignItems: "center",
@@ -587,6 +650,14 @@ const styles = StyleSheet.create({
   confirmationActions: {
     flexDirection: "row",
     gap: 10
+  },
+  demoPanel: {
+    borderWidth: 1,
+    borderColor: "#f6c76f",
+    borderRadius: 8,
+    gap: 12,
+    padding: 18,
+    backgroundColor: "#fff7e6"
   },
   secondaryButton: {
     alignItems: "center",
