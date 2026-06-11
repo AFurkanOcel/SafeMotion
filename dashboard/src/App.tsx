@@ -4,9 +4,11 @@ import {
   CheckCircle2,
   Download,
   KeyRound,
+  ListChecks,
   LogOut,
   Plus,
   RefreshCcw,
+  Smartphone,
   Users,
   Wifi,
   WifiOff
@@ -29,7 +31,6 @@ import { createPairingCode } from "./api/devices";
 import { getHealthStatus } from "./api/health";
 import { createMonitoredPerson, getMonitoredPersons } from "./api/monitoredPersons";
 import { getSensorReadings } from "./api/sensorReadings";
-import { API_BASE_URL } from "./config";
 import { useDashboardSocket } from "./hooks/useDashboardSocket";
 import type { AlertItem, AuthUser, DevicePlatform, MonitoredPerson, PairingCodeResponse, SensorReading } from "./types";
 
@@ -83,6 +84,14 @@ export const App = () => {
   const activeAlertCount = useMemo(() => alerts.filter((alert) => alert.status === "ACTIVE").length, [alerts]);
   const latestReading = readings[0];
   const selectedMonitoredPerson = monitoredPersons.find((person) => person.id === selectedMonitoredPersonId) ?? null;
+  const latestReadingLabel = latestReading ? formatTime(latestReading.receivedAt) : "Waiting";
+  const demoSteps = [
+    { label: "Person selected", isDone: Boolean(selectedMonitoredPerson) },
+    { label: "Pairing code ready", isDone: Boolean(pairingCodeResult) },
+    { label: "Sensor readings received", isDone: readings.length > 0 },
+    { label: "Live socket connected", isDone: isConnected },
+    { label: "Alert list ready", isDone: true }
+  ];
 
   const chartData = useMemo(
     () =>
@@ -411,6 +420,7 @@ export const App = () => {
             <div>
               <p>Latest acceleration</p>
               <strong>{latestReading?.accelerationMagnitude?.toFixed(2) ?? "No data"}</strong>
+              <small>{latestReadingLabel}</small>
             </div>
           </article>
           <article className="metric">
@@ -427,6 +437,21 @@ export const App = () => {
               <strong>{user.fullName}</strong>
             </div>
           </article>
+        </section>
+
+        <section className="demo-status-panel" aria-label="Demo readiness">
+          <div>
+            <p className="eyebrow">Demo flow</p>
+            <h2>{selectedMonitoredPerson ? selectedMonitoredPerson.displayName : "Create or select a monitored person"}</h2>
+          </div>
+          <div className="demo-step-list">
+            {demoSteps.map((step) => (
+              <span key={step.label} className={step.isDone ? "demo-step-done" : ""}>
+                <CheckCircle2 aria-hidden="true" />
+                {step.label}
+              </span>
+            ))}
+          </div>
         </section>
 
         <section className="people-layout" id="people">
@@ -458,6 +483,31 @@ export const App = () => {
                 <p className="empty-state">No monitored persons yet. Create one to start the demo flow.</p>
               )}
             </div>
+          </div>
+
+          <div className="panel selected-person-panel">
+            <div className="panel-header">
+              <h2>Selected person</h2>
+              <Users aria-hidden="true" />
+            </div>
+            {selectedMonitoredPerson ? (
+              <dl className="detail-list">
+                <div>
+                  <dt>Name</dt>
+                  <dd>{selectedMonitoredPerson.displayName}</dd>
+                </div>
+                <div>
+                  <dt>Notes</dt>
+                  <dd>{selectedMonitoredPerson.notes || "No notes"}</dd>
+                </div>
+                <div>
+                  <dt>ID</dt>
+                  <dd>{selectedMonitoredPerson.id}</dd>
+                </div>
+              </dl>
+            ) : (
+              <p className="empty-state">Select a monitored person to prepare pairing and live monitoring.</p>
+            )}
           </div>
 
           <form className="panel person-form" onSubmit={handleCreateMonitoredPerson}>
@@ -576,17 +626,24 @@ export const App = () => {
               <h2>Motion readings</h2>
               <span>{readings.length} rows</span>
             </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="time" minTickGap={24} />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="acceleration" stroke="#1261a6" dot={false} />
-                <Line type="monotone" dataKey="rotation" stroke="#ef4444" dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
+            {chartData.length ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="time" minTickGap={24} />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="acceleration" stroke="#1261a6" dot={false} />
+                  <Line type="monotone" dataKey="rotation" stroke="#ef4444" dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="empty-chart">
+                <Smartphone aria-hidden="true" />
+                <p>Pair a mobile device and start monitoring to show live motion readings here.</p>
+              </div>
+            )}
           </div>
 
           <div className="panel" id="events">
@@ -595,12 +652,16 @@ export const App = () => {
               <span>{events.length}</span>
             </div>
             <div className="event-list">
-              {events.map((event) => (
-                <article key={event.id} className="event-row">
-                  <strong>{event.name}</strong>
-                  <span>{formatTime(event.receivedAt)}</span>
-                </article>
-              ))}
+              {events.length ? (
+                events.map((event) => (
+                  <article key={event.id} className="event-row">
+                    <strong>{event.name}</strong>
+                    <span>{formatTime(event.receivedAt)}</span>
+                  </article>
+                ))
+              ) : (
+                <p className="empty-state">Live events will appear after sensor uploads, fall suspicion, or alert updates.</p>
+              )}
             </div>
           </div>
         </section>
@@ -625,23 +686,34 @@ export const App = () => {
                 </tr>
               </thead>
               <tbody>
-                {alerts.map((alert) => (
-                  <tr key={alert.id}>
-                    <td>{alert.severity}</td>
-                    <td>{alert.status}</td>
-                    <td>{alert.title}</td>
-                    <td>{formatTime(alert.createdAt)}</td>
-                    <td>
-                      <button
-                        type="button"
-                        onClick={() => void handleResolveAlert(alert.id)}
-                        disabled={alert.status === "RESOLVED"}
-                      >
-                        Resolve
-                      </button>
+                {alerts.length ? (
+                  alerts.map((alert) => (
+                    <tr key={alert.id}>
+                      <td>{alert.severity}</td>
+                      <td>{alert.status}</td>
+                      <td>{alert.title}</td>
+                      <td>{formatTime(alert.createdAt)}</td>
+                      <td>
+                        <button
+                          type="button"
+                          onClick={() => void handleResolveAlert(alert.id)}
+                          disabled={alert.status === "RESOLVED"}
+                        >
+                          Resolve
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5}>
+                      <span className="table-empty">
+                        <ListChecks aria-hidden="true" />
+                        No alerts yet. A fall confirmation or no-response scenario will create alerts here.
+                      </span>
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
