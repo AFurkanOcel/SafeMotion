@@ -133,6 +133,34 @@ export const openApiDocument = {
         }
       }
     },
+    "/auth/signup": {
+      post: {
+        tags: ["Auth"],
+        summary: "Create a caregiver dashboard account",
+        description: "Public signup creates caregiver accounts only. Admin accounts are created by seed data or by an authenticated admin.",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  email: { type: "string", format: "email", example: "newcaregiver@example.com" },
+                  password: { type: "string", minLength: 8, example: "StrongPassword123!" },
+                  fullName: { type: "string", example: "New Caregiver" }
+                },
+                required: ["email", "password", "fullName"]
+              }
+            }
+          }
+        },
+        responses: {
+          "201": { description: "Caregiver account created and signed in" },
+          "400": { description: "Invalid signup body" },
+          "409": { description: "Email already exists" }
+        }
+      }
+    },
     "/auth/register": {
       post: {
         tags: ["Auth"],

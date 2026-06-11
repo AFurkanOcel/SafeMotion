@@ -20,6 +20,7 @@ describe("SafeMotion API app", () => {
 
     expect(response.body.info.title).toBe("SafeMotion API");
     expect(response.body.paths).toHaveProperty("/auth/login");
+    expect(response.body.paths).toHaveProperty("/auth/signup");
     expect(response.body.paths).toHaveProperty("/devices/pair");
     expect(response.body.paths).toHaveProperty("/sensor-readings");
     expect(response.body.components.securitySchemes).toHaveProperty("deviceTokenAuth");
@@ -35,6 +36,16 @@ describe("SafeMotion API app", () => {
       .expect(400);
 
     expect(response.body.error.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("returns a bad request for malformed JSON", async () => {
+    const response = await request(app)
+      .post("/api/v1/auth/login")
+      .set("Content-Type", "application/json")
+      .send("{")
+      .expect(400);
+
+    expect(response.body.error.code).toBe("INVALID_JSON");
   });
 
   it("requires JWT for protected alert routes", async () => {

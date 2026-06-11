@@ -1,6 +1,7 @@
 import { createSensorReadingSchema } from "../src/schemas/sensor-reading.schemas.js";
 import { createConfirmationResponseSchema } from "../src/schemas/confirmation.schemas.js";
 import { pairDeviceSchema } from "../src/schemas/device.schemas.js";
+import { signupSchema } from "../src/schemas/auth.schemas.js";
 
 describe("request schemas", () => {
   it("accepts a valid accelerometer and gyroscope reading", () => {
@@ -55,5 +56,16 @@ describe("request schemas", () => {
 
     expect(result.success).toBe(false);
   });
-});
 
+  it("accepts public caregiver signup details without a role", () => {
+    const result = signupSchema.safeParse({
+      body: {
+        email: "newcaregiver@example.com",
+        password: "StrongPassword123!",
+        fullName: "New Caregiver"
+      }
+    });
+
+    expect(result.success).toBe(true);
+  });
+});

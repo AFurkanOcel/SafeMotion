@@ -7,7 +7,7 @@ import { env } from "../config/env.js";
 import { logger } from "../config/logger.js";
 import type { AuthUser, JwtPayload } from "../types/auth.js";
 import { AppError } from "../utils/app-error.js";
-import type { LoginInput, RegisterInput } from "../schemas/auth.schemas.js";
+import type { LoginInput, RegisterInput, SignupInput } from "../schemas/auth.schemas.js";
 
 const PASSWORD_SALT_ROUNDS = 12;
 
@@ -65,6 +65,18 @@ export const registerUser = async (input: RegisterInput) => {
   );
 
   return toAuthUser(user);
+};
+
+export const signupCaregiver = async (input: SignupInput) => {
+  const user = await registerUser({
+    ...input,
+    role: "CAREGIVER"
+  });
+
+  return {
+    token: signAccessToken(user),
+    user
+  };
 };
 
 export const loginUser = async (input: LoginInput) => {

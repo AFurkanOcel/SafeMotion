@@ -9,6 +9,14 @@ export const registerSchema = z.object({
   })
 });
 
+export const signupSchema = z.object({
+  body: z.object({
+    email: z.string().email().transform((value) => value.toLowerCase()),
+    password: z.string().min(8).max(128),
+    fullName: z.string().min(2).max(120)
+  })
+});
+
 export const loginSchema = z.object({
   body: z.object({
     email: z.string().email().transform((value) => value.toLowerCase()),
@@ -17,5 +25,5 @@ export const loginSchema = z.object({
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>["body"];
+export type SignupInput = z.infer<typeof signupSchema>["body"];
 export type LoginInput = z.infer<typeof loginSchema>["body"];
-

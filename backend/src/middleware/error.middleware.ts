@@ -13,6 +13,26 @@ export const notFoundMiddleware: RequestHandler = (req, res) => {
 };
 
 export const errorMiddleware: ErrorRequestHandler = (error, _req, res, _next) => {
+  const httpError = error as { status?: number; statusCode?: number; type?: string } | null;
+
+  if (httpError?.type === "entity.parse.failed") {
+    logger.warn(
+      {
+        errorCode: "INVALID_JSON",
+        statusCode: 400
+      },
+      "Request body must be valid JSON"
+    );
+
+    res.status(400).json({
+      error: {
+        code: "INVALID_JSON",
+        message: "Request body must be valid JSON"
+      }
+    });
+    return;
+  }
+
   if (error instanceof AppError) {
     logger.warn(
       {

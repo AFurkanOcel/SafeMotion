@@ -10,6 +10,8 @@ export type LoginResponse = {
   user: AuthUser;
 };
 
+export type SignupResponse = LoginResponse;
+
 export type AlertStatus = "ACTIVE" | "RESOLVED";
 export type AlertSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
@@ -48,4 +50,3 @@ export type LiveEvent = {
   receivedAt: string;
   payload: unknown;
 };
-

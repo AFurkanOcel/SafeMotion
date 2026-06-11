@@ -5,7 +5,6 @@ import {
   Download,
   LogOut,
   RefreshCcw,
-  ShieldCheck,
   Wifi,
   WifiOff
 } from "lucide-react";
@@ -22,7 +21,7 @@ import {
 } from "recharts";
 
 import { exportAlertsCsv, getAlerts, resolveAlert } from "./api/alerts";
-import { login } from "./api/auth";
+import { login, signup } from "./api/auth";
 import { getHealthStatus } from "./api/health";
 import { getSensorReadings } from "./api/sensorReadings";
 import { API_BASE_URL } from "./config";
@@ -30,9 +29,11 @@ import { useDashboardSocket } from "./hooks/useDashboardSocket";
 import type { AlertItem, AuthUser, SensorReading } from "./types";
 
 type HealthState = "checking" | "online" | "offline";
+type AuthMode = "signin" | "signup";
 
 const TOKEN_STORAGE_KEY = "safemotion.dashboard.token";
 const USER_STORAGE_KEY = "safemotion.dashboard.user";
+const APP_ICON_SRC = "/safemotion.png";
 
 const formatTime = (value: string) =>
   new Intl.DateTimeFormat("en", {
@@ -54,9 +55,11 @@ const readStoredUser = () => {
 export const App = () => {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_STORAGE_KEY));
   const [user, setUser] = useState<AuthUser | null>(() => readStoredUser());
+  const [authMode, setAuthMode] = useState<AuthMode>("signin");
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("caregiver@example.com");
   const [password, setPassword] = useState("");
-  const [loginError, setLoginError] = useState("");
+  const [authError, setAuthError] = useState("");
   const [healthState, setHealthState] = useState<HealthState>("checking");
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [readings, setReadings] = useState<SensorReading[]>([]);
@@ -129,7 +132,7 @@ export const App = () => {
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setLoginError("");
+    setAuthError("");
     setStatusMessage("Signing in");
 
     try {
@@ -140,8 +143,26 @@ export const App = () => {
       setUser(result.user);
       setStatusMessage("Signed in");
     } catch (error) {
-      setLoginError(error instanceof Error ? error.message : "Login failed");
+      setAuthError(error instanceof Error ? error.message : "Login failed");
       setStatusMessage("Login failed");
+    }
+  };
+
+  const handleSignup = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setAuthError("");
+    setStatusMessage("Creating account");
+
+    try {
+      const result = await signup(fullName, email, password);
+      localStorage.setItem(TOKEN_STORAGE_KEY, result.token);
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(result.user));
+      setToken(result.token);
+      setUser(result.user);
+      setStatusMessage("Account created");
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : "Signup failed");
+      setStatusMessage("Signup failed");
     }
   };
 
@@ -187,17 +208,41 @@ export const App = () => {
   };
 
   if (!token || !user) {
+    const isSignup = authMode === "signup";
+
     return (
       <main className="auth-shell">
         <section className="auth-panel">
           <div className="brand auth-brand">
-            <ShieldCheck aria-hidden="true" />
+            <img src={APP_ICON_SRC} alt="" aria-hidden="true" />
             <span>SafeMotion</span>
           </div>
-          <form className="login-form" onSubmit={handleLogin}>
+          <div className="auth-copy">
+            <h1>{isSignup ? "Create your account" : "Welcome back"}</h1>
+            <p>{isSignup ? "Start monitoring motion safety as a caregiver." : "Sign in to monitor alerts and live sensor data."}</p>
+          </div>
+          <form className="login-form" onSubmit={isSignup ? handleSignup : handleLogin}>
+            {isSignup ? (
+              <label>
+                Full name
+                <input
+                  value={fullName}
+                  onChange={(event) => setFullName(event.target.value)}
+                  type="text"
+                  autoComplete="name"
+                  required
+                />
+              </label>
+            ) : null}
             <label>
               Email
-              <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="email" />
+              <input
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                type="email"
+                autoComplete="email"
+                required
+              />
             </label>
             <label>
               Password
@@ -205,12 +250,26 @@ export const App = () => {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 type="password"
-                autoComplete="current-password"
+                autoComplete={isSignup ? "new-password" : "current-password"}
+                minLength={isSignup ? 8 : undefined}
+                required
               />
             </label>
-            {loginError ? <p className="form-error">{loginError}</p> : null}
-            <button type="submit">Sign in</button>
+            {authError ? <p className="form-error">{authError}</p> : null}
+            <button type="submit">{isSignup ? "Create account" : "Sign in"}</button>
           </form>
+          <p className="auth-switch">
+            {isSignup ? "Already have an account?" : "Don't have an account?"}
+            <button
+              type="button"
+              onClick={() => {
+                setAuthMode(isSignup ? "signin" : "signup");
+                setAuthError("");
+              }}
+            >
+              {isSignup ? "Sign in" : "Create account"}
+            </button>
+          </p>
         </section>
       </main>
     );
@@ -220,7 +279,7 @@ export const App = () => {
     <main className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <ShieldCheck aria-hidden="true" />
+          <img src={APP_ICON_SRC} alt="" aria-hidden="true" />
           <span>SafeMotion</span>
         </div>
         <nav className="nav-list" aria-label="Dashboard sections">
@@ -309,8 +368,8 @@ export const App = () => {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="acceleration" stroke="#15735d" dot={false} />
-                <Line type="monotone" dataKey="rotation" stroke="#b45309" dot={false} />
+                <Line type="monotone" dataKey="acceleration" stroke="#1261a6" dot={false} />
+                <Line type="monotone" dataKey="rotation" stroke="#ef4444" dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
