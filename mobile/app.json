@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "SafeMotion",
+    "slug": "safemotion",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.safemotion.mobile"
+    },
+    "android": {
+      "package": "com.safemotion.mobile"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "extra": {
+      "apiBaseUrl": "http://localhost:3000/api/v1",
+      "socketUrl": "http://localhost:3000"
+    }
+  }
+}
+
