@@ -1,5 +1,6 @@
 import { prisma } from "../config/database.js";
 import { detectionConfig } from "../config/detection.js";
+import { logger } from "../config/logger.js";
 import { socketEvents } from "../sockets/socket.events.js";
 import { recordNoResponseAndEscalate } from "./confirmation.service.js";
 
@@ -61,6 +62,16 @@ const createFallSuspectedEvent = async (reading: ReadingForAnalysis): Promise<De
     deviceId: reading.deviceId,
     monitoredPersonId: reading.monitoredPersonId
   });
+  logger.warn(
+    {
+      detectionEventId: detectionEvent.id,
+      deviceId: reading.deviceId,
+      monitoredPersonId: reading.monitoredPersonId,
+      accelerationMagnitude: reading.accelerationMagnitude,
+      rotationMagnitude: reading.rotationMagnitude
+    },
+    "Fall suspected"
+  );
 
   return "FALL_SUSPECTED" satisfies DetectionStatus;
 };
@@ -101,6 +112,15 @@ const createInactivityEvent = async (
     deviceId: reading.deviceId,
     monitoredPersonId: reading.monitoredPersonId
   });
+  logger.warn(
+    {
+      detectionEventId: inactivityEvent.id,
+      linkedFallEventId: fallEventId,
+      deviceId: reading.deviceId,
+      monitoredPersonId: reading.monitoredPersonId
+    },
+    "Inactivity detected after fall suspicion"
+  );
 
   return "INACTIVITY_DETECTED" satisfies DetectionStatus;
 };

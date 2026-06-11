@@ -1,4 +1,5 @@
 import { prisma } from "../config/database.js";
+import { logger } from "../config/logger.js";
 import { socketEvents } from "../sockets/socket.events.js";
 import type { AuthDevice, AuthUser } from "../types/auth.js";
 import { AppError } from "../utils/app-error.js";
@@ -53,6 +54,13 @@ export const createDevicePairingCode = async (user: AuthUser, input: CreatePairi
       id: true
     }
   });
+  logger.info(
+    {
+      deviceId: device.id,
+      monitoredPersonId: input.monitoredPersonId
+    },
+    "Device pairing code created"
+  );
 
   return {
     deviceId: device.id,
@@ -110,6 +118,14 @@ export const pairDevice = async (input: PairDeviceInput) => {
     status: "PAIRED",
     lastSeenAt: new Date()
   });
+  logger.info(
+    {
+      deviceId: pairedDevice.id,
+      monitoredPersonId: pairedDevice.monitoredPersonId,
+      platform: pairedDevice.platform
+    },
+    "Device paired"
+  );
 
   return {
     deviceId: pairedDevice.id,

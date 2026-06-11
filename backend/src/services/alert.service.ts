@@ -1,4 +1,5 @@
 import { prisma } from "../config/database.js";
+import { logger } from "../config/logger.js";
 import type { AlertIdParamInput, ListAlertsInput, ResolveAlertInput } from "../schemas/alert.schemas.js";
 import { socketEvents } from "../sockets/socket.events.js";
 import type { AuthUser } from "../types/auth.js";
@@ -61,6 +62,14 @@ export const createAlertForDetectionEvent = async (input: AlertCreateInput) => {
     }
   });
   socketEvents.alertCreated(alert);
+  logger.warn(
+    {
+      alertId: alert.id,
+      monitoredPersonId: input.monitoredPersonId,
+      severity: input.severity
+    },
+    "Alert created"
+  );
 
   return alert;
 };
@@ -162,6 +171,13 @@ export const resolveAlert = async (user: AuthUser, input: ResolveAlertInput) => 
     }
   });
   socketEvents.alertResolved(resolvedAlert);
+  logger.info(
+    {
+      alertId: resolvedAlert.id,
+      resolvedById: resolvedAlert.resolvedById
+    },
+    "Alert resolved"
+  );
 
   return resolvedAlert;
 };

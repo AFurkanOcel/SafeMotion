@@ -4,6 +4,7 @@ import type { SignOptions } from "jsonwebtoken";
 
 import { prisma } from "../config/database.js";
 import { env } from "../config/env.js";
+import { logger } from "../config/logger.js";
 import type { AuthUser, JwtPayload } from "../types/auth.js";
 import { AppError } from "../utils/app-error.js";
 import type { LoginInput, RegisterInput } from "../schemas/auth.schemas.js";
@@ -55,6 +56,13 @@ export const registerUser = async (input: RegisterInput) => {
       role: true
     }
   });
+  logger.info(
+    {
+      userId: user.id,
+      role: user.role
+    },
+    "Dashboard user registered"
+  );
 
   return toAuthUser(user);
 };
@@ -83,6 +91,13 @@ export const loginUser = async (input: LoginInput) => {
   }
 
   const authUser = toAuthUser(user);
+  logger.info(
+    {
+      userId: authUser.id,
+      role: authUser.role
+    },
+    "Dashboard user logged in"
+  );
 
   return {
     token: signAccessToken(authUser),

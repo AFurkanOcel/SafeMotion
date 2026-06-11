@@ -1,4 +1,5 @@
 import { prisma } from "../config/database.js";
+import { logger } from "../config/logger.js";
 import type { SensorReadingPayload, SensorReadingBatchInput, ListSensorReadingsInput } from "../schemas/sensor-reading.schemas.js";
 import { socketEvents } from "../sockets/socket.events.js";
 import { analyzeSensorReading, type DetectionStatus } from "./detection.service.js";
@@ -81,6 +82,15 @@ export const createSensorReading = async (device: AuthDevice, input: SensorReadi
   });
 
   const detectionStatus = await analyzeSensorReading(reading);
+  logger.debug(
+    {
+      readingId: reading.id,
+      deviceId: reading.deviceId,
+      monitoredPersonId: reading.monitoredPersonId,
+      detectionStatus
+    },
+    "Sensor reading accepted"
+  );
 
   return {
     id: reading.id,
@@ -119,6 +129,15 @@ export const createSensorReadingBatch = async (device: AuthDevice, input: Sensor
 
     latestDetectionStatus = await analyzeSensorReading(reading);
   }
+  logger.debug(
+    {
+      deviceId: device.id,
+      monitoredPersonId: device.monitoredPersonId,
+      accepted: input.readings.length,
+      detectionStatus: latestDetectionStatus
+    },
+    "Sensor reading batch accepted"
+  );
 
   return {
     accepted: input.readings.length,

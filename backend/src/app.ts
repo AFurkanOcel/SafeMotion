@@ -4,6 +4,7 @@ import helmet from "helmet";
 
 import { env } from "./config/env.js";
 import { errorMiddleware, notFoundMiddleware } from "./middleware/error.middleware.js";
+import { requestLoggerMiddleware } from "./middleware/request-logger.middleware.js";
 import { alertRouter } from "./routes/alert.routes.js";
 import { authRouter } from "./routes/auth.routes.js";
 import { confirmationRouter } from "./routes/confirmation.routes.js";
@@ -16,6 +17,7 @@ import { sensorReadingRouter } from "./routes/sensor-reading.routes.js";
 export const createApp = () => {
   const app = express();
 
+  app.use(requestLoggerMiddleware);
   app.use(helmet());
   app.use(
     cors({

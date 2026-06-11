@@ -1,4 +1,5 @@
 import { prisma } from "../config/database.js";
+import { logger } from "../config/logger.js";
 import type { CreateConfirmationResponseInput } from "../schemas/confirmation.schemas.js";
 import { socketEvents } from "../sockets/socket.events.js";
 import type { AuthDevice } from "../types/auth.js";
@@ -57,6 +58,13 @@ export const createConfirmationResponse = async (device: AuthDevice, input: Crea
       deviceId: detectionEvent.deviceId,
       status: "SAFE_CONFIRMED"
     });
+    logger.info(
+      {
+        detectionEventId: detectionEvent.id,
+        deviceId: detectionEvent.deviceId
+      },
+      "Fall confirmation marked safe"
+    );
 
     return {
       ...confirmationResponse,
@@ -83,6 +91,13 @@ export const createConfirmationResponse = async (device: AuthDevice, input: Crea
     deviceId: detectionEvent.deviceId,
     status: "ESCALATED"
   });
+  logger.warn(
+    {
+      detectionEventId: detectionEvent.id,
+      deviceId: detectionEvent.deviceId
+    },
+    "Fall confirmation escalated by user"
+  );
 
   return {
     ...confirmationResponse,
@@ -156,6 +171,13 @@ export const recordNoResponseAndEscalate = async (detectionEventId: string) => {
     deviceId: detectionEvent.deviceId,
     status: "ESCALATED"
   });
+  logger.warn(
+    {
+      detectionEventId: detectionEvent.id,
+      deviceId: detectionEvent.deviceId
+    },
+    "Fall confirmation escalated after no response"
+  );
 
   return createAlertForDetectionEvent({
     monitoredPersonId: detectionEvent.monitoredPersonId,

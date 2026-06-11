@@ -1,5 +1,6 @@
 import type { ErrorRequestHandler, RequestHandler } from "express";
 
+import { logger } from "../config/logger.js";
 import { AppError } from "../utils/app-error.js";
 
 export const notFoundMiddleware: RequestHandler = (req, res) => {
@@ -13,6 +14,14 @@ export const notFoundMiddleware: RequestHandler = (req, res) => {
 
 export const errorMiddleware: ErrorRequestHandler = (error, _req, res, _next) => {
   if (error instanceof AppError) {
+    logger.warn(
+      {
+        errorCode: error.code,
+        statusCode: error.statusCode
+      },
+      error.message
+    );
+
     res.status(error.statusCode).json({
       error: {
         code: error.code,
@@ -23,6 +32,12 @@ export const errorMiddleware: ErrorRequestHandler = (error, _req, res, _next) =>
   }
 
   const message = error instanceof Error ? error.message : "Unexpected server error";
+  logger.error(
+    {
+      error
+    },
+    message
+  );
 
   res.status(500).json({
     error: {
