@@ -20,6 +20,16 @@ export const listAlertsSchema = z.object({
   })
 });
 
+export const exportAlertsCsvSchema = z.object({
+  query: z.object({
+    status: z.enum(["ACTIVE", "RESOLVED"]).optional(),
+    severity: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).optional(),
+    monitoredPersonId: z.string().uuid().optional(),
+    from: z.string().datetime().optional(),
+    to: z.string().datetime().optional()
+  })
+});
+
 export const resolveAlertSchema = z.object({
   params: z.object({
     id: z.string().uuid()
@@ -31,5 +41,5 @@ export const resolveAlertSchema = z.object({
 
 export type AlertIdParamInput = z.infer<typeof alertIdParamSchema>;
 export type ListAlertsInput = z.infer<typeof listAlertsSchema>;
+export type ExportAlertsCsvInput = z.infer<typeof exportAlertsCsvSchema>;
 export type ResolveAlertInput = z.infer<typeof resolveAlertSchema>;
-

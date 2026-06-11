@@ -1,6 +1,6 @@
 import { prisma } from "../config/database.js";
 import { logger } from "../config/logger.js";
-import type { AlertIdParamInput, ListAlertsInput, ResolveAlertInput } from "../schemas/alert.schemas.js";
+import type { AlertIdParamInput, ExportAlertsCsvInput, ListAlertsInput, ResolveAlertInput } from "../schemas/alert.schemas.js";
 import { socketEvents } from "../sockets/socket.events.js";
 import type { AuthUser } from "../types/auth.js";
 import { AppError } from "../utils/app-error.js";
@@ -118,6 +118,106 @@ export const listAlerts = async (user: AuthUser, input: ListAlertsInput) => {
   return {
     items: alerts
   };
+};
+
+const escapeCsvValue = (value: string | number | null) => {
+  if (value === null) {
+    return "";
+  }
+
+  const stringValue = String(value);
+
+  if (/[",\n\r]/.test(stringValue)) {
+    return `"${stringValue.replace(/"/g, '""')}"`;
+  }
+
+  return stringValue;
+};
+
+export const exportAlertsCsv = async (user: AuthUser, input: ExportAlertsCsvInput) => {
+  if (input.query.monitoredPersonId) {
+    await ensureMonitoredPersonAccess(user, input.query.monitoredPersonId);
+  }
+
+  const alerts = await prisma.alert.findMany({
+    where: {
+      status: input.query.status,
+      severity: input.query.severity,
+      monitoredPersonId:
+        user.role === "ADMIN"
+          ? input.query.monitoredPersonId
+          : input.query.monitoredPersonId
+            ? input.query.monitoredPersonId
+            : undefined,
+      createdAt: {
+        gte: input.query.from ? new Date(input.query.from) : undefined,
+        lte: input.query.to ? new Date(input.query.to) : undefined
+      },
+      monitoredPerson:
+        user.role === "CAREGIVER"
+          ? {
+              caregiverId: user.id
+            }
+          : undefined
+    },
+    orderBy: {
+      createdAt: "desc"
+    },
+    select: {
+      id: true,
+      monitoredPersonId: true,
+      detectionEventId: true,
+      status: true,
+      severity: true,
+      title: true,
+      message: true,
+      createdAt: true,
+      resolvedAt: true,
+      resolvedById: true,
+      resolutionNote: true
+    }
+  });
+
+  const headers = [
+    "id",
+    "monitoredPersonId",
+    "detectionEventId",
+    "status",
+    "severity",
+    "title",
+    "message",
+    "createdAt",
+    "resolvedAt",
+    "resolvedById",
+    "resolutionNote"
+  ];
+  const rows = alerts.map((alert) =>
+    [
+      alert.id,
+      alert.monitoredPersonId,
+      alert.detectionEventId,
+      alert.status,
+      alert.severity,
+      alert.title,
+      alert.message,
+      alert.createdAt.toISOString(),
+      alert.resolvedAt?.toISOString() ?? null,
+      alert.resolvedById,
+      alert.resolutionNote
+    ]
+      .map(escapeCsvValue)
+      .join(",")
+  );
+
+  logger.info(
+    {
+      userId: user.id,
+      exportedRows: alerts.length
+    },
+    "Alerts exported as CSV"
+  );
+
+  return [headers.join(","), ...rows].join("\n");
 };
 
 export const getAlert = async (user: AuthUser, input: AlertIdParamInput) => {

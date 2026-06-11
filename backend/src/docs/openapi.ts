@@ -360,6 +360,33 @@ export const openApiDocument = {
         }
       }
     },
+    "/alerts/export.csv": {
+      get: {
+        tags: ["Alerts"],
+        summary: "Export alert history as CSV",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "status", in: "query", required: false, schema: { type: "string", enum: ["ACTIVE", "RESOLVED"] } },
+          { name: "severity", in: "query", required: false, schema: { type: "string", enum: ["LOW", "MEDIUM", "HIGH", "CRITICAL"] } },
+          { name: "monitoredPersonId", in: "query", required: false, schema: { type: "string", format: "uuid" } },
+          { name: "from", in: "query", required: false, schema: { type: "string", format: "date-time" } },
+          { name: "to", in: "query", required: false, schema: { type: "string", format: "date-time" } }
+        ],
+        responses: {
+          "200": {
+            description: "CSV alert export",
+            content: {
+              "text/csv": {
+                schema: {
+                  type: "string",
+                  example: "id,status,severity,title,createdAt,resolvedAt\nalert-id,ACTIVE,CRITICAL,Critical fall alert,2026-06-11T12:00:00.000Z,"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/alerts/{id}": {
       get: {
         tags: ["Alerts"],
@@ -400,4 +427,3 @@ export const openApiDocument = {
     }
   }
 } as const;
-

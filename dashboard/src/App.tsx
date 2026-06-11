@@ -2,6 +2,7 @@ import {
   Activity,
   AlertTriangle,
   CheckCircle2,
+  Download,
   LogOut,
   RefreshCcw,
   ShieldCheck,
@@ -20,7 +21,7 @@ import {
   YAxis
 } from "recharts";
 
-import { getAlerts, resolveAlert } from "./api/alerts";
+import { exportAlertsCsv, getAlerts, resolveAlert } from "./api/alerts";
 import { login } from "./api/auth";
 import { getHealthStatus } from "./api/health";
 import { getSensorReadings } from "./api/sensorReadings";
@@ -162,6 +163,27 @@ export const App = () => {
 
     await resolveAlert(token, alertId, "Resolved from SafeMotion dashboard.");
     await refreshAlerts();
+  };
+
+  const handleExportCsv = async () => {
+    if (!token) {
+      return;
+    }
+
+    try {
+      const blob = await exportAlertsCsv(token);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "safemotion-alerts.csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      setStatusMessage("CSV export downloaded");
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "CSV export failed");
+    }
   };
 
   if (!token || !user) {
@@ -312,7 +334,10 @@ export const App = () => {
         <section className="panel" id="alerts">
           <div className="panel-header">
             <h2>Alerts</h2>
-            <span>{API_BASE_URL}</span>
+            <button type="button" onClick={() => void handleExportCsv()}>
+              <Download aria-hidden="true" />
+              Export CSV
+            </button>
           </div>
           <div className="table-wrap">
             <table>
@@ -351,4 +376,3 @@ export const App = () => {
     </main>
   );
 };
-

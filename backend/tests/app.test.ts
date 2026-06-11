@@ -43,6 +43,12 @@ describe("SafeMotion API app", () => {
     expect(response.body.error.code).toBe("UNAUTHORIZED");
   });
 
+  it("requires JWT for alert CSV export", async () => {
+    const response = await request(app).get("/api/v1/alerts/export.csv").expect(401);
+
+    expect(response.body.error.code).toBe("UNAUTHORIZED");
+  });
+
   it("requires device token for sensor upload", async () => {
     const response = await request(app)
       .post("/api/v1/sensor-readings")
@@ -62,4 +68,3 @@ describe("SafeMotion API app", () => {
     expect(response.body.error.code).toBe("NOT_FOUND");
   });
 });
-
