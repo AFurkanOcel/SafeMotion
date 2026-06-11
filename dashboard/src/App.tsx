@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Download,
+  KeyRound,
   LogOut,
   Plus,
   RefreshCcw,
@@ -24,12 +25,13 @@ import {
 
 import { exportAlertsCsv, getAlerts, resolveAlert } from "./api/alerts";
 import { login, signup } from "./api/auth";
+import { createPairingCode } from "./api/devices";
 import { getHealthStatus } from "./api/health";
 import { createMonitoredPerson, getMonitoredPersons } from "./api/monitoredPersons";
 import { getSensorReadings } from "./api/sensorReadings";
 import { API_BASE_URL } from "./config";
 import { useDashboardSocket } from "./hooks/useDashboardSocket";
-import type { AlertItem, AuthUser, MonitoredPerson, SensorReading } from "./types";
+import type { AlertItem, AuthUser, DevicePlatform, MonitoredPerson, PairingCodeResponse, SensorReading } from "./types";
 
 type HealthState = "checking" | "online" | "offline";
 type AuthMode = "signin" | "signup";
@@ -71,6 +73,10 @@ export const App = () => {
   const [newMonitoredPersonName, setNewMonitoredPersonName] = useState("");
   const [newMonitoredPersonNotes, setNewMonitoredPersonNotes] = useState("");
   const [personFormError, setPersonFormError] = useState("");
+  const [pairingDeviceName, setPairingDeviceName] = useState("Demo Phone");
+  const [pairingPlatform, setPairingPlatform] = useState<DevicePlatform>("UNKNOWN");
+  const [pairingCodeResult, setPairingCodeResult] = useState<PairingCodeResponse | null>(null);
+  const [pairingError, setPairingError] = useState("");
   const [statusMessage, setStatusMessage] = useState("Ready");
   const { events, isConnected } = useDashboardSocket(token);
 
@@ -208,6 +214,7 @@ export const App = () => {
     setReadings([]);
     setMonitoredPersons([]);
     setSelectedMonitoredPersonId("");
+    setPairingCodeResult(null);
     setPassword("");
     setStatusMessage("Signed out");
   };
@@ -242,6 +249,26 @@ export const App = () => {
 
     await resolveAlert(token, alertId, "Resolved from SafeMotion dashboard.");
     await refreshAlerts();
+  };
+
+  const handleCreatePairingCode = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!token || !selectedMonitoredPersonId) {
+      return;
+    }
+
+    setPairingError("");
+    setStatusMessage("Creating pairing code");
+
+    try {
+      const result = await createPairingCode(token, selectedMonitoredPersonId, pairingDeviceName, pairingPlatform);
+      setPairingCodeResult(result);
+      setStatusMessage("Pairing code created");
+    } catch (error) {
+      setPairingError(error instanceof Error ? error.message : "Pairing code creation failed");
+      setStatusMessage("Pairing code creation failed");
+    }
   };
 
   const handleExportCsv = async () => {
@@ -343,6 +370,7 @@ export const App = () => {
         <nav className="nav-list" aria-label="Dashboard sections">
           <a href="#overview">Overview</a>
           <a href="#people">People</a>
+          <a href="#pairing">Pairing</a>
           <a href="#monitoring">Live Monitoring</a>
           <a href="#alerts">Alerts</a>
           <a href="#events">Events</a>
@@ -462,6 +490,67 @@ export const App = () => {
               Create person
             </button>
           </form>
+        </section>
+
+        <section className="pairing-layout" id="pairing">
+          <form className="panel pairing-form" onSubmit={handleCreatePairingCode}>
+            <div className="panel-header">
+              <h2>Device pairing</h2>
+              <KeyRound aria-hidden="true" />
+            </div>
+            <p className="panel-copy">
+              {selectedMonitoredPerson
+                ? `Create a temporary code for ${selectedMonitoredPerson.displayName}.`
+                : "Select or create a monitored person before creating a pairing code."}
+            </p>
+            <label>
+              Device name
+              <input
+                value={pairingDeviceName}
+                onChange={(event) => setPairingDeviceName(event.target.value)}
+                type="text"
+                placeholder="Demo Phone"
+                required
+              />
+            </label>
+            <label>
+              Platform
+              <select value={pairingPlatform} onChange={(event) => setPairingPlatform(event.target.value as DevicePlatform)}>
+                <option value="UNKNOWN">Unknown</option>
+                <option value="ANDROID">Android</option>
+                <option value="IOS">iOS</option>
+              </select>
+            </label>
+            {pairingError ? <p className="form-error">{pairingError}</p> : null}
+            <button type="submit" disabled={!selectedMonitoredPersonId}>
+              <KeyRound aria-hidden="true" />
+              Create pairing code
+            </button>
+          </form>
+
+          <div className="panel pairing-code-panel">
+            <div className="panel-header">
+              <h2>Latest pairing code</h2>
+              <span>{pairingCodeResult ? "Ready" : "Not created"}</span>
+            </div>
+            {pairingCodeResult ? (
+              <div className="pairing-code-box">
+                <strong>{pairingCodeResult.pairingCode}</strong>
+                <dl>
+                  <div>
+                    <dt>Device ID</dt>
+                    <dd>{pairingCodeResult.deviceId}</dd>
+                  </div>
+                  <div>
+                    <dt>Expires</dt>
+                    <dd>{new Date(pairingCodeResult.expiresAt).toLocaleString()}</dd>
+                  </div>
+                </dl>
+              </div>
+            ) : (
+              <p className="empty-state">Create a pairing code, then enter it on the mobile app pairing screen.</p>
+            )}
+          </div>
         </section>
 
         <section className="toolbar">

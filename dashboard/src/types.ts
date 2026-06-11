@@ -23,6 +23,14 @@ export type MonitoredPerson = {
   updatedAt: string;
 };
 
+export type DevicePlatform = "IOS" | "ANDROID" | "UNKNOWN";
+
+export type PairingCodeResponse = {
+  deviceId: string;
+  pairingCode: string;
+  expiresAt: string;
+};
+
 export type AlertStatus = "ACTIVE" | "RESOLVED";
 export type AlertSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 

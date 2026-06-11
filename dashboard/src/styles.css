@@ -21,6 +21,7 @@ body {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
 }
@@ -63,6 +64,16 @@ input {
   border: 1px solid #bdd1e5;
   border-radius: 6px;
   padding: 8px 10px;
+}
+
+select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid #bdd1e5;
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: #172033;
+  background: #ffffff;
 }
 
 textarea {
@@ -368,6 +379,12 @@ h2 {
   gap: 16px;
 }
 
+.pairing-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.7fr) minmax(0, 1.3fr);
+  gap: 16px;
+}
+
 .person-list {
   display: grid;
   gap: 10px;
@@ -411,20 +428,79 @@ h2 {
   background: #eef7ff;
 }
 
+.pairing-form,
 .person-form {
   display: grid;
   align-content: start;
   gap: 14px;
 }
 
+.pairing-form .panel-header,
 .person-form .panel-header {
   margin-bottom: 0;
 }
 
+.pairing-form > button,
 .person-form > button {
   color: #ffffff;
   background: #1261a6;
   border-color: #1261a6;
+}
+
+.panel-copy {
+  margin: 0;
+  color: #536f8f;
+  line-height: 1.5;
+}
+
+.pairing-code-panel {
+  display: grid;
+  align-content: start;
+}
+
+.pairing-code-box {
+  display: grid;
+  gap: 18px;
+}
+
+.pairing-code-box > strong {
+  display: block;
+  width: 100%;
+  border: 1px solid #bdd1e5;
+  border-radius: 8px;
+  padding: 18px;
+  color: #0b1f3a;
+  background: #eef7ff;
+  font-size: clamp(32px, 8vw, 56px);
+  line-height: 1;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+.pairing-code-box dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.pairing-code-box div {
+  display: grid;
+  gap: 4px;
+}
+
+.pairing-code-box dt {
+  color: #617995;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.pairing-code-box dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #172033;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .empty-state {
@@ -533,6 +609,7 @@ td {
   }
 
   .topbar,
+  .pairing-layout,
   .people-layout,
   .workspace {
     align-items: stretch;
