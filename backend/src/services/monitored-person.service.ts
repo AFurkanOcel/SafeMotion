@@ -81,9 +81,7 @@ export const listMonitoredPersons = async (user: AuthUser) => {
         : {
             isActive: true
           },
-    orderBy: {
-      createdAt: "desc"
-    },
+    orderBy: [{ displayName: "asc" }, { createdAt: "desc" }],
     select: monitoredPersonSelect
   });
 

@@ -43,7 +43,7 @@ const main = async () => {
   await prisma.monitoredPerson.upsert({
     where: { id: "11111111-1111-4111-8111-111111111111" },
     update: {
-      displayName: "Demo Patient",
+      displayName: "Demo User",
       notes: "Demo monitored person for dashboard and mobile pairing tests.",
       caregiverId: caregiver.id,
       createdById: admin.id,
@@ -51,7 +51,7 @@ const main = async () => {
     },
     create: {
       id: "11111111-1111-4111-8111-111111111111",
-      displayName: "Demo Patient",
+      displayName: "Demo User",
       notes: "Demo monitored person for dashboard and mobile pairing tests.",
       caregiverId: caregiver.id,
       createdById: admin.id,

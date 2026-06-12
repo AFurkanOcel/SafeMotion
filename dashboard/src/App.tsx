@@ -34,7 +34,7 @@ import { createPairingCode } from "./api/devices";
 import { getHealthStatus } from "./api/health";
 import { createMonitoredPerson, getMonitoredPersons } from "./api/monitoredPersons";
 import { getSensorReadings } from "./api/sensorReadings";
-import { deactivateUser, getUsers, resetUserPassword } from "./api/users";
+import { deactivateUser, getUsers, reactivateUser, resetUserPassword } from "./api/users";
 import { useDashboardSocket } from "./hooks/useDashboardSocket";
 import type {
   AlertItem,
@@ -333,6 +333,23 @@ export const App = () => {
       setSettingsSuccess("Account deactivated");
     } catch (error) {
       setSettingsError(error instanceof Error ? error.message : "Account deactivation failed");
+    }
+  };
+
+  const handleReactivateUser = async (managedUserId: string) => {
+    if (!token) {
+      return;
+    }
+
+    setSettingsError("");
+    setSettingsSuccess("");
+
+    try {
+      await reactivateUser(token, managedUserId);
+      await refreshManagedUsers();
+      setSettingsSuccess("Account reactivated");
+    } catch (error) {
+      setSettingsError(error instanceof Error ? error.message : "Account reactivation failed");
     }
   };
 
@@ -988,6 +1005,13 @@ export const App = () => {
                       >
                         <Trash2 aria-hidden="true" />
                         Deactivate
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleReactivateUser(managedUser.id)}
+                        disabled={managedUser.isActive}
+                      >
+                        Reactivate
                       </button>
                     </div>
                   </article>

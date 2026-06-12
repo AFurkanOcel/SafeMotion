@@ -9,6 +9,12 @@ export const deactivateUser = (token: string, userId: string) =>
     token
   });
 
+export const reactivateUser = (token: string, userId: string) =>
+  apiRequest<ManagedUser>(`/users/${userId}/reactivate`, {
+    method: "PATCH",
+    token
+  });
+
 export const resetUserPassword = (token: string, userId: string, newPassword: string) =>
   apiRequest<{ status: string }>(`/users/${userId}/password`, {
     method: "PATCH",

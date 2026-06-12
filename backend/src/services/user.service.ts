@@ -69,6 +69,42 @@ export const deactivateUser = async (actor: AuthUser, input: UserIdParamInput) =
   return updatedUser;
 };
 
+export const reactivateUser = async (actor: AuthUser, input: UserIdParamInput) => {
+  const user = await prisma.user.findUnique({
+    where: { id: input.params.id },
+    select: {
+      id: true,
+      isActive: true
+    }
+  });
+
+  if (!user) {
+    throw new AppError(404, "USER_NOT_FOUND", "User was not found");
+  }
+
+  if (user.isActive) {
+    return {
+      id: user.id,
+      isActive: true
+    };
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id: user.id },
+    data: { isActive: true },
+    select: {
+      id: true,
+      email: true,
+      fullName: true,
+      role: true,
+      isActive: true
+    }
+  });
+  logger.info({ actorId: actor.id, userId: updatedUser.id }, "Dashboard user reactivated");
+
+  return updatedUser;
+};
+
 export const resetUserPassword = async (actor: AuthUser, input: ResetUserPasswordInput) => {
   const user = await prisma.user.findUnique({
     where: { id: input.params.id },
