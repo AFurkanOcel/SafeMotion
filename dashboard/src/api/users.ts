@@ -15,6 +15,12 @@ export const reactivateUser = (token: string, userId: string) =>
     token
   });
 
+export const removeUser = (token: string, userId: string) =>
+  apiRequest<{ removed: boolean }>(`/users/${userId}`, {
+    method: "DELETE",
+    token
+  });
+
 export const resetUserPassword = (token: string, userId: string, newPassword: string) =>
   apiRequest<{ status: string }>(`/users/${userId}/password`, {
     method: "PATCH",

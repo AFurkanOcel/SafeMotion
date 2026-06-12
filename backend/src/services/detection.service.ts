@@ -36,7 +36,36 @@ const isLowMovementReading = (reading: ReadingForAnalysis) => {
   );
 };
 
-const createFallSuspectedEvent = async (reading: ReadingForAnalysis): Promise<DetectionStatus> => {
+const isFreeFallLikeReading = (reading: ReadingForAnalysis) => {
+  const accelerationMagnitude = reading.accelerationMagnitude ?? detectionConfig.gravityMagnitude;
+
+  return accelerationMagnitude <= detectionConfig.freeFallAccelerationMagnitudeThreshold;
+};
+
+const recentlyHadFreeFallReading = async (reading: ReadingForAnalysis) => {
+  const freeFallReading = await prisma.sensorReading.findFirst({
+    where: {
+      deviceId: reading.deviceId,
+      recordedAt: {
+        gte: new Date(reading.recordedAt.getTime() - detectionConfig.freeFallLookbackMs),
+        lt: reading.recordedAt
+      },
+      accelerationMagnitude: {
+        lte: detectionConfig.freeFallAccelerationMagnitudeThreshold
+      }
+    },
+    orderBy: {
+      recordedAt: "desc"
+    },
+    select: {
+      id: true
+    }
+  });
+
+  return Boolean(freeFallReading);
+};
+
+const createFallSuspectedEvent = async (reading: ReadingForAnalysis, reason: string): Promise<DetectionStatus> => {
   const detectionEvent = await prisma.detectionEvent.create({
     data: {
       monitoredPersonId: reading.monitoredPersonId,
@@ -47,12 +76,14 @@ const createFallSuspectedEvent = async (reading: ReadingForAnalysis): Promise<De
       severity: "HIGH",
       startedAt: reading.recordedAt,
       metadata: {
-        reason: "Threshold-based fall suspicion",
+        reason,
         accelerationMagnitude: reading.accelerationMagnitude,
         rotationMagnitude: reading.rotationMagnitude,
         thresholds: {
           fallAccelerationMagnitude: detectionConfig.fallAccelerationMagnitudeThreshold,
-          fallRotationMagnitude: detectionConfig.fallRotationMagnitudeThreshold
+          fallRotationMagnitude: detectionConfig.fallRotationMagnitudeThreshold,
+          freeFallAccelerationMagnitude: detectionConfig.freeFallAccelerationMagnitudeThreshold,
+          freeFallLookbackMs: detectionConfig.freeFallLookbackMs
         }
       }
     }
@@ -163,7 +194,15 @@ export const analyzeSensorReading = async (reading: ReadingForAnalysis): Promise
   }
 
   if (isFallLikeReading(reading)) {
-    return createFallSuspectedEvent(reading);
+    return createFallSuspectedEvent(reading, "Threshold-based fall suspicion");
+  }
+
+  if (isFreeFallLikeReading(reading)) {
+    return createFallSuspectedEvent(reading, "Free-fall-like motion detected");
+  }
+
+  if (isLowMovementReading(reading) && (await recentlyHadFreeFallReading(reading))) {
+    return createFallSuspectedEvent(reading, "Low movement after free-fall-like motion");
   }
 
   return "NORMAL";

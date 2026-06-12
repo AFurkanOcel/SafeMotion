@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const prismaMock = vi.hoisted(() => ({
+  sensorReading: {
+    findFirst: vi.fn()
+  },
   detectionEvent: {
     create: vi.fn(),
     findFirst: vi.fn()
@@ -52,6 +55,7 @@ describe("detection service thresholds", () => {
 
   it("keeps normal movement readings as NORMAL", async () => {
     prismaMock.detectionEvent.findFirst.mockResolvedValue(null);
+    prismaMock.sensorReading.findFirst.mockResolvedValue(null);
 
     const result = await analyzeSensorReading(baseReading);
 
@@ -86,6 +90,31 @@ describe("detection service thresholds", () => {
         detectionEventId: "00000000-0000-4000-8000-000000000040",
         deviceId: baseReading.deviceId,
         monitoredPersonId: baseReading.monitoredPersonId
+      })
+    );
+  });
+
+  it("creates a fall suspicion for free-fall-like low acceleration", async () => {
+    prismaMock.detectionEvent.findFirst.mockResolvedValue(null);
+    prismaMock.detectionEvent.create.mockResolvedValue({
+      id: "00000000-0000-4000-8000-000000000042"
+    });
+
+    const result = await analyzeSensorReading({
+      ...baseReading,
+      accelerationMagnitude: 1.8,
+      rotationMagnitude: 0.1
+    });
+
+    expect(result).toBe("FALL_SUSPECTED");
+    expect(prismaMock.detectionEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          type: "FALL_SUSPECTED",
+          metadata: expect.objectContaining({
+            reason: "Free-fall-like motion detected"
+          })
+        })
       })
     );
   });

@@ -34,7 +34,7 @@ import { createPairingCode } from "./api/devices";
 import { getHealthStatus } from "./api/health";
 import { createMonitoredPerson, getMonitoredPersons } from "./api/monitoredPersons";
 import { getSensorReadings } from "./api/sensorReadings";
-import { deactivateUser, getUsers, reactivateUser, resetUserPassword } from "./api/users";
+import { deactivateUser, getUsers, reactivateUser, removeUser, resetUserPassword } from "./api/users";
 import { useDashboardSocket } from "./hooks/useDashboardSocket";
 import type {
   AlertItem,
@@ -350,6 +350,31 @@ export const App = () => {
       setSettingsSuccess("Account reactivated");
     } catch (error) {
       setSettingsError(error instanceof Error ? error.message : "Account reactivation failed");
+    }
+  };
+
+  const handleRemoveUser = async (managedUser: ManagedUser) => {
+    if (!token) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to remove ${managedUser.email}? This is only allowed for accounts without related records.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setSettingsError("");
+    setSettingsSuccess("");
+
+    try {
+      await removeUser(token, managedUser.id);
+      await refreshManagedUsers();
+      setSettingsSuccess("Account removed");
+    } catch (error) {
+      setSettingsError(error instanceof Error ? error.message : "Account removal failed");
     }
   };
 
@@ -1012,6 +1037,14 @@ export const App = () => {
                         disabled={managedUser.isActive}
                       >
                         Reactivate
+                      </button>
+                      <button
+                        className="danger-button"
+                        type="button"
+                        onClick={() => void handleRemoveUser(managedUser)}
+                        disabled={managedUser.id === user.id}
+                      >
+                        Remove
                       </button>
                     </div>
                   </article>

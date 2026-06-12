@@ -105,6 +105,69 @@ export const reactivateUser = async (actor: AuthUser, input: UserIdParamInput) =
   return updatedUser;
 };
 
+export const removeUser = async (actor: AuthUser, input: UserIdParamInput) => {
+  if (actor.id === input.params.id) {
+    throw new AppError(400, "CANNOT_REMOVE_SELF", "You cannot remove your own account");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: input.params.id },
+    select: {
+      id: true,
+      email: true,
+      fullName: true,
+      role: true,
+      caregiverMonitoredPersons: {
+        select: { id: true },
+        take: 1
+      },
+      createdMonitoredPersons: {
+        select: { id: true },
+        take: 1
+      },
+      resolvedAlerts: {
+        select: { id: true },
+        take: 1
+      },
+      systemLogs: {
+        select: { id: true },
+        take: 1
+      }
+    }
+  });
+
+  if (!user) {
+    throw new AppError(404, "USER_NOT_FOUND", "User was not found");
+  }
+
+  const hasRelatedRecords =
+    user.caregiverMonitoredPersons.length > 0 ||
+    user.createdMonitoredPersons.length > 0 ||
+    user.resolvedAlerts.length > 0 ||
+    user.systemLogs.length > 0;
+
+  if (hasRelatedRecords) {
+    throw new AppError(
+      409,
+      "USER_HAS_RELATED_RECORDS",
+      "This user has related records and cannot be removed safely. Deactivate the account instead."
+    );
+  }
+
+  await prisma.user.delete({
+    where: { id: user.id }
+  });
+  logger.warn({ actorId: actor.id, userId: user.id, email: user.email }, "Dashboard user removed");
+
+  return {
+    id: user.id,
+    email: user.email,
+    fullName: user.fullName,
+    role: user.role,
+    removed: true
+  };
+};
+
 export const resetUserPassword = async (actor: AuthUser, input: ResetUserPasswordInput) => {
   const user = await prisma.user.findUnique({
     where: { id: input.params.id },
