@@ -221,7 +221,7 @@ Main endpoint groups:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/AFurkanOcel/SafeMotion.git
+git clone https://github.com/SafeMotion2026/SafeMotion.git
 cd SafeMotion
 ```
 
