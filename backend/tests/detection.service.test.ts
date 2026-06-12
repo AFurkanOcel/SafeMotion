@@ -94,16 +94,32 @@ describe("detection service thresholds", () => {
     );
   });
 
-  it("creates a fall suspicion for free-fall-like low acceleration", async () => {
+  it("does not create fall suspicion for an isolated free-fall-like reading", async () => {
     prismaMock.detectionEvent.findFirst.mockResolvedValue(null);
+
+    const result = await analyzeSensorReading({
+      ...baseReading,
+      accelerationMagnitude: 1.8,
+      rotationMagnitude: 0.1
+    });
+
+    expect(result).toBe("NORMAL");
+    expect(prismaMock.detectionEvent.create).not.toHaveBeenCalled();
+  });
+
+  it("creates fall suspicion for low movement after a recent free-fall-like reading", async () => {
+    prismaMock.detectionEvent.findFirst.mockResolvedValue(null);
+    prismaMock.sensorReading.findFirst.mockResolvedValue({
+      id: "00000000-0000-4000-8000-000000000039"
+    });
     prismaMock.detectionEvent.create.mockResolvedValue({
       id: "00000000-0000-4000-8000-000000000042"
     });
 
     const result = await analyzeSensorReading({
       ...baseReading,
-      accelerationMagnitude: 1.8,
-      rotationMagnitude: 0.1
+      accelerationMagnitude: 9.81,
+      rotationMagnitude: 0.05
     });
 
     expect(result).toBe("FALL_SUSPECTED");
@@ -112,7 +128,7 @@ describe("detection service thresholds", () => {
         data: expect.objectContaining({
           type: "FALL_SUSPECTED",
           metadata: expect.objectContaining({
-            reason: "Free-fall-like motion detected"
+            reason: "Low movement after free-fall-like motion"
           })
         })
       })

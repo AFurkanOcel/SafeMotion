@@ -197,10 +197,6 @@ export const analyzeSensorReading = async (reading: ReadingForAnalysis): Promise
     return createFallSuspectedEvent(reading, "Threshold-based fall suspicion");
   }
 
-  if (isFreeFallLikeReading(reading)) {
-    return createFallSuspectedEvent(reading, "Free-fall-like motion detected");
-  }
-
   if (isLowMovementReading(reading) && (await recentlyHadFreeFallReading(reading))) {
     return createFallSuspectedEvent(reading, "Low movement after free-fall-like motion");
   }

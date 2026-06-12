@@ -1,8 +1,8 @@
 export const detectionConfig = {
   fallAccelerationMagnitudeThreshold: 22,
   fallRotationMagnitudeThreshold: 8,
-  freeFallAccelerationMagnitudeThreshold: 3,
-  freeFallLookbackMs: 4_000,
+  freeFallAccelerationMagnitudeThreshold: 2,
+  freeFallLookbackMs: 2_500,
   inactivityAccelerationDeltaFromGravityThreshold: 1.2,
   inactivityRotationMagnitudeThreshold: 0.35,
   inactivityWindowMs: 30_000,
