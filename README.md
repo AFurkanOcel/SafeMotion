@@ -1,6 +1,10 @@
 # SafeMotion
 
 <p align="center">
+  <img width="92" alt="SafeMotion icon" src="assets/icons/safemotion_icon.png" />
+</p>
+
+<p align="center">
 Fall and inactivity monitoring platform with mobile sensor collection, real-time caregiver dashboard, alerts, and device-token authorization.
 </p>
 
@@ -16,6 +20,7 @@ Fall and inactivity monitoring platform with mobile sensor collection, real-time
   <img src="https://img.shields.io/badge/API-Swagger-brightgreen"/>
   <img src="https://img.shields.io/badge/Deployment-Docker%20Compose-2496ED"/>
   <img src="https://img.shields.io/badge/Tests-Vitest-yellow"/>
+  <img src="https://img.shields.io/badge/Status-Completed-brightgreen"/>
 </p>
 
 ---
@@ -36,54 +41,9 @@ The project focuses on a complete demo-ready workflow:
 - Alert creation, listing, live display, CSV export, and resolve workflow.
 - Swagger/OpenAPI documentation, logging, automated tests, and Docker Compose support.
 
----
+The dashboard brings the main monitoring workflow into a single operational view: selected monitored person, live status, sensor readings, events, alerts, and device pairing.
 
-## Screenshots
-
-The screenshots below show the main SafeMotion workflow from dashboard login to mobile monitoring, alert handling, and project verification.
-
-| Dashboard Login | Dashboard Overview |
-| --- | --- |
-| <img alt="SafeMotion Dashboard Login" src="assets/screenshots/dashboard_login.png" /> | <img alt="SafeMotion Dashboard Overview" src="assets/screenshots/dashboard_overview.png" /> |
-
-| Monitored Person Management | Device Pairing |
-| --- | --- |
-| <img alt="Monitored Person Management" src="assets/screenshots/monitored_person_management.png" /> | <img alt="Device Pairing Workflow" src="assets/screenshots/device_pairing.png" /> |
-
-| Live Motion Readings and Events | Alert Workflow |
-| --- | --- |
-| <img alt="Live Motion Readings and Events" src="assets/screenshots/live_motion_readings_and_events.png" /> | <img alt="Alert Workflow" src="assets/screenshots/alerts_workflow.png" /> |
-
-<table>
-  <tr>
-    <th>Mobile Monitoring</th>
-    <th>Mobile Confirmation</th>
-  </tr>
-  <tr>
-    <td rowspan="3">
-      <img width="360" alt="SafeMotion Mobile Monitoring" src="assets/screenshots/mobile_monitoring_screen.png" />
-    </td>
-    <td>
-      <img width="360" alt="SafeMotion Mobile Confirmation" src="assets/screenshots/mobile_confirmation_screen.png" />
-    </td>
-  </tr>
-  <tr>
-    <th>Backend Tests</th>
-  </tr>
-  <tr>
-    <td>
-      <img alt="Backend Test Results" src="assets/screenshots/backend_tests.png" />
-    </td>
-  </tr>
-</table>
-
-| Admin User Management |
-| --- |
-| <img alt="Admin User Management" src="assets/screenshots/settings_user_management.png" /> |
-
-| Docker Compose Services |
-| --- |
-| <img alt="Docker Compose Running Services" src="assets/screenshots/docker_compose_running.png" /> |
+<img alt="SafeMotion Dashboard Overview" src="assets/screenshots/dashboard_overview.png" />
 
 ---
 
@@ -323,6 +283,50 @@ Recommended jury/demo flow:
 14. Export alert history as CSV.
 15. Open Swagger API documentation.
 16. Optionally run backend tests.
+
+---
+
+## Visual Walkthrough
+
+The login screen provides seeded demo account shortcuts so reviewers can test both caregiver and admin flows without manually typing credentials.
+
+<img alt="SafeMotion Dashboard Login" src="assets/screenshots/dashboard_login.png" />
+
+Monitored person management lets caregivers create and select the person whose motion data will be monitored during the demo.
+
+<img alt="Monitored Person Management" src="assets/screenshots/monitored_person_management.png" />
+
+The pairing panel generates a temporary code for the selected monitored person. The mobile app uses this code once to receive a device token.
+
+<img alt="Device Pairing Workflow" src="assets/screenshots/device_pairing.png" />
+
+After the phone starts monitoring, the dashboard receives live motion readings and Socket.IO events. This view proves that accelerometer and gyroscope data reaches the backend in real time.
+
+<img alt="Live Motion Readings and Events" src="assets/screenshots/live_motion_readings_and_events.png" />
+
+When a fall suspicion or help request is escalated, the alert workflow becomes visible on the dashboard and the caregiver can resolve the incident.
+
+<img alt="Alert Workflow" src="assets/screenshots/alerts_workflow.png" />
+
+The mobile monitoring screen shows the paired device status, live sensor values, and the safe demo trigger used to reproduce a fall event without physically dropping the phone.
+
+<img width="360" alt="SafeMotion Mobile Monitoring" src="assets/screenshots/mobile_monitoring_screen.png" />
+
+The confirmation screen appears after a suspected fall. The monitored person can confirm safety or request help, which drives the alert lifecycle.
+
+<img width="360" alt="SafeMotion Mobile Confirmation" src="assets/screenshots/mobile_confirmation_screen.png" />
+
+Admin settings provide controlled account management for demo and testing scenarios, including deactivate, reactivate, remove, and password reset actions.
+
+<img alt="Admin User Management" src="assets/screenshots/settings_user_management.png" />
+
+The backend test suite verifies critical workflows such as auth, device pairing, validation, detection logic, and CSV export behavior.
+
+<img alt="Backend Test Results" src="assets/screenshots/backend_tests.png" />
+
+Docker Compose starts PostgreSQL, the backend API, and the dashboard together, making the project easier to run for review and presentation.
+
+<img alt="Docker Compose Running Services" src="assets/screenshots/docker_compose_running.png" />
 
 ---
 
