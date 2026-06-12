@@ -38,49 +38,31 @@ The project focuses on a complete demo-ready workflow:
 
 ## Screenshots
 
-### Dashboard Login
+The screenshots below show the main SafeMotion workflow from dashboard login to mobile monitoring, alert handling, and project verification.
 
-<img width="1000" alt="SafeMotion Dashboard Login" src="assets/screenshots/dashboard_login.png" />
+| Dashboard Login | Dashboard Overview |
+| --- | --- |
+| <img alt="SafeMotion Dashboard Login" src="assets/screenshots/dashboard_login.png" /> | <img alt="SafeMotion Dashboard Overview" src="assets/screenshots/dashboard_overview.png" /> |
 
-### Dashboard Overview
+| Monitored Person Management | Device Pairing |
+| --- | --- |
+| <img alt="Monitored Person Management" src="assets/screenshots/monitored_person_management.png" /> | <img alt="Device Pairing Workflow" src="assets/screenshots/device_pairing.png" /> |
 
-<img width="1000" alt="SafeMotion Dashboard Overview" src="assets/screenshots/dashboard_overview.png" />
+| Live Motion Readings and Events | Alert Workflow |
+| --- | --- |
+| <img alt="Live Motion Readings and Events" src="assets/screenshots/live_motion_readings_and_events.png" /> | <img alt="Alert Workflow" src="assets/screenshots/alerts_workflow.png" /> |
 
-### Monitored Person Management
+| Mobile Monitoring | Mobile Confirmation |
+| --- | --- |
+| <img width="360" alt="SafeMotion Mobile Monitoring" src="assets/screenshots/mobile_monitoring_screen.png" /> | <img width="360" alt="SafeMotion Mobile Confirmation" src="assets/screenshots/mobile_confirmation_screen.png" /> |
 
-<img width="1000" alt="Monitored Person Management" src="assets/screenshots/monitored_person_management.png" />
+| Admin User Management | Backend Tests |
+| --- | --- |
+| <img alt="Admin User Management" src="assets/screenshots/settings_user_management.png" /> | <img alt="Backend Test Results" src="assets/screenshots/backend_tests.png" /> |
 
-### Device Pairing
-
-<img width="1000" alt="Device Pairing Workflow" src="assets/screenshots/device_pairing.png" />
-
-### Live Motion Readings and Events
-
-<img width="1000" alt="Live Motion Readings and Events" src="assets/screenshots/live_motion_readings_and_events.png" />
-
-### Alert Workflow
-
-<img width="1000" alt="Alert Workflow" src="assets/screenshots/alerts_workflow.png" />
-
-### Mobile Monitoring
-
-<img width="360" alt="SafeMotion Mobile Monitoring" src="assets/screenshots/mobile_monitoring_screen.png" />
-
-### Mobile Confirmation
-
-<img width="360" alt="SafeMotion Mobile Confirmation" src="assets/screenshots/mobile_confirmation_screen.png" />
-
-### Admin User Management
-
-<img width="1000" alt="Admin User Management" src="assets/screenshots/settings_user_management.png" />
-
-### Backend Tests
-
-<img width="1000" alt="Backend Test Results" src="assets/screenshots/backend_tests.png" />
-
-### Docker Compose
-
-<img width="1000" alt="Docker Compose Running Services" src="assets/screenshots/docker_compose_running.png" />
+| Docker Compose Services |
+| --- |
+| <img alt="Docker Compose Running Services" src="assets/screenshots/docker_compose_running.png" /> |
 
 ---
 
