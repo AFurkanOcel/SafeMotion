@@ -1,0 +1,19 @@
+docker --version
+docker info
+docker compose up --build
+
+cd mobile
+npm run start -- --host lan --clear
+
+http://localhost:5173
+http://localhost:3000/api-docs/
+http://localhost:3000/api/v1/health
+
+http://192.168.0.12:5173
+http://192.168.0.12:3000/api/v1/health
+
+docker compose down
+
+
+admin@example.com
+StrongPassword123!

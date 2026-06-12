@@ -334,29 +334,29 @@ Recommended jury/demo flow:
 ```text
 SafeMotion/
 |-- assets/
-|   |-- icons/                 Application icons
-|   `-- screenshots/           README screenshots
+|   |-- icons/
+|   `-- screenshots/
 |-- backend/
-|   |-- prisma/                Prisma schema and seed data
+|   |-- prisma/
 |   |-- src/
-|   |   |-- config/            Environment and detection config
-|   |   |-- controllers/       Express controllers
-|   |   |-- docs/              OpenAPI document
-|   |   |-- middleware/        Auth, validation, and error middleware
-|   |   |-- routes/            REST route modules
-|   |   |-- schemas/           Zod request schemas
-|   |   |-- services/          Business logic
-|   |   |-- sockets/           Socket.IO setup and events
-|   |   |-- types/             Shared backend types
-|   |   `-- utils/             Helpers
-|   `-- tests/                 Backend unit and integration tests
+|   |   |-- config/
+|   |   |-- controllers/
+|   |   |-- docs/
+|   |   |-- middleware/
+|   |   |-- routes/
+|   |   |-- schemas/
+|   |   |-- services/
+|   |   |-- sockets/
+|   |   |-- types/
+|   |   `-- utils/
+|   `-- tests/
 |-- dashboard/
-|   |-- public/                Static dashboard assets
-|   `-- src/                   React dashboard source
-|-- docs/                      Planning and design documentation
+|   |-- public/
+|   `-- src/
+|-- docs/
 |-- mobile/
-|   |-- assets/                Mobile assets
-|   `-- src/                   Expo mobile source
+|   |-- assets/
+|   `-- src/
 |-- docker-compose.yml
 `-- README.md
 ```
@@ -383,7 +383,7 @@ Additional project documentation:
 | Member | GitHub | Responsibility |
 | --- | --- | --- |
 | Mustafa Can Ersoy | [MustafaCanErsoy](https://github.com/MustafaCanErsoy) | Problem analysis, system architecture, core workflow, and high-level data model |
-| Umut Kocatepe | [UmutKocatepe](https://github.com/UmutKocatepe) | Backend development, REST API design, authentication/authorization, and technical database implementation |
+| Hasan Umut Kocatepe | [UmutKocatepe](https://github.com/UmutKocatepe) | Backend development, REST API design, authentication/authorization, and technical database implementation |
 | Adem Berk Yüksel | [csharp-craftsman](https://github.com/csharp-craftsman) | Dashboard UI, real-time monitoring, alert management, and user operations |
 | Ahmet Furkan Öcel | [AFurkanOcel](https://github.com/AFurkanOcel) | Mobile app, phone pairing, sensor upload flow, tests, bonus features, and final demo integration |
 
