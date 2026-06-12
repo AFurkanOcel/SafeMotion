@@ -7,7 +7,7 @@ import { env } from "../config/env.js";
 import { logger } from "../config/logger.js";
 import type { AuthUser, JwtPayload } from "../types/auth.js";
 import { AppError } from "../utils/app-error.js";
-import type { LoginInput, RegisterInput, SignupInput } from "../schemas/auth.schemas.js";
+import type { ChangePasswordInput, LoginInput, RegisterInput, SignupInput } from "../schemas/auth.schemas.js";
 
 const PASSWORD_SALT_ROUNDS = 12;
 
@@ -142,4 +142,37 @@ export const verifyAccessToken = (token: string) => {
   } catch {
     throw new AppError(401, "UNAUTHORIZED", "Invalid or expired token");
   }
+};
+
+export const changeOwnPassword = async (userId: string, input: ChangePasswordInput) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      passwordHash: true,
+      isActive: true
+    }
+  });
+
+  if (!user || !user.isActive) {
+    throw new AppError(401, "UNAUTHORIZED", "Authentication is required");
+  }
+
+  const passwordMatches = await bcrypt.compare(input.currentPassword, user.passwordHash);
+
+  if (!passwordMatches) {
+    throw new AppError(401, "INVALID_CURRENT_PASSWORD", "Current password is incorrect");
+  }
+
+  const passwordHash = await bcrypt.hash(input.newPassword, PASSWORD_SALT_ROUNDS);
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash }
+  });
+  logger.info({ userId: user.id }, "Dashboard user password changed");
+
+  return {
+    status: "UPDATED"
+  };
 };

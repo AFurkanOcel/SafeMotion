@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 
-import { loginUser, registerUser, signupCaregiver } from "../services/auth.service.js";
+import { changeOwnPassword, loginUser, registerUser, signupCaregiver } from "../services/auth.service.js";
+import { AppError } from "../utils/app-error.js";
 
 export const register = async (req: Request, res: Response) => {
   const user = await registerUser(req.body);
@@ -22,4 +23,14 @@ export const login = async (req: Request, res: Response) => {
 
 export const getMe = (req: Request, res: Response) => {
   res.status(200).json(req.user);
+};
+
+export const changePassword = async (req: Request, res: Response) => {
+  if (!req.user) {
+    throw new AppError(401, "UNAUTHORIZED", "Authentication is required");
+  }
+
+  const result = await changeOwnPassword(req.user.id, req.body);
+
+  res.status(200).json(result);
 };

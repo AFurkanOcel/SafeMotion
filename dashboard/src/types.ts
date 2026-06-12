@@ -5,6 +5,12 @@ export type AuthUser = {
   role: "ADMIN" | "CAREGIVER";
 };
 
+export type ManagedUser = AuthUser & {
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type LoginResponse = {
   token: string;
   user: AuthUser;

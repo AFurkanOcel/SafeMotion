@@ -14,6 +14,7 @@ import { docsRouter } from "./routes/docs.routes.js";
 import { healthRouter } from "./routes/health.routes.js";
 import { monitoredPersonRouter } from "./routes/monitored-person.routes.js";
 import { sensorReadingRouter } from "./routes/sensor-reading.routes.js";
+import { userRouter } from "./routes/user.routes.js";
 
 export const createApp = () => {
   const app = express();
@@ -36,6 +37,7 @@ export const createApp = () => {
   app.use("/api/v1/health", healthRouter);
   app.use("/api/v1/monitored-persons", monitoredPersonRouter);
   app.use("/api/v1/sensor-readings", sensorReadingRouter);
+  app.use("/api/v1/users", userRouter);
   app.use("/api/v1/database", databaseRouter);
 
   app.use(notFoundMiddleware);

@@ -8,7 +8,10 @@ import {
   LogOut,
   Plus,
   RefreshCcw,
+  Settings,
+  ShieldCheck,
   Smartphone,
+  Trash2,
   Users,
   Wifi,
   WifiOff
@@ -26,13 +29,22 @@ import {
 } from "recharts";
 
 import { exportAlertsCsv, getAlerts, resolveAlert } from "./api/alerts";
-import { login, signup } from "./api/auth";
+import { changePassword, login, signup } from "./api/auth";
 import { createPairingCode } from "./api/devices";
 import { getHealthStatus } from "./api/health";
 import { createMonitoredPerson, getMonitoredPersons } from "./api/monitoredPersons";
 import { getSensorReadings } from "./api/sensorReadings";
+import { deactivateUser, getUsers, resetUserPassword } from "./api/users";
 import { useDashboardSocket } from "./hooks/useDashboardSocket";
-import type { AlertItem, AuthUser, DevicePlatform, MonitoredPerson, PairingCodeResponse, SensorReading } from "./types";
+import type {
+  AlertItem,
+  AuthUser,
+  DevicePlatform,
+  ManagedUser,
+  MonitoredPerson,
+  PairingCodeResponse,
+  SensorReading
+} from "./types";
 
 type HealthState = "checking" | "online" | "offline";
 type AuthMode = "signin" | "signup";
@@ -75,6 +87,7 @@ export const App = () => {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("caregiver@example.com");
   const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [authError, setAuthError] = useState("");
   const [healthState, setHealthState] = useState<HealthState>("checking");
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
@@ -88,6 +101,13 @@ export const App = () => {
   const [pairingPlatform, setPairingPlatform] = useState<DevicePlatform>("UNKNOWN");
   const [pairingCodeResult, setPairingCodeResult] = useState<PairingCodeResponse | null>(null);
   const [pairingError, setPairingError] = useState("");
+  const [managedUsers, setManagedUsers] = useState<ManagedUser[]>([]);
+  const [settingsError, setSettingsError] = useState("");
+  const [settingsSuccess, setSettingsSuccess] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newPasswordConfirmation, setNewPasswordConfirmation] = useState("");
+  const [resetPasswords, setResetPasswords] = useState<Record<string, string>>({});
   const [statusMessage, setStatusMessage] = useState("Ready");
   const { events, isConnected } = useDashboardSocket(token);
 
@@ -164,6 +184,15 @@ export const App = () => {
     setStatusMessage(result.items.length ? "Readings loaded" : "No readings found for selected person");
   };
 
+  const refreshManagedUsers = async () => {
+    if (!token || user?.role !== "ADMIN") {
+      return;
+    }
+
+    const result = await getUsers(token);
+    setManagedUsers(result.items);
+  };
+
   useEffect(() => {
     if (!token) {
       return;
@@ -173,6 +202,7 @@ export const App = () => {
     void refreshMonitoredPersons().catch((error) =>
       setStatusMessage(error instanceof Error ? error.message : "Monitored person refresh failed")
     );
+    void refreshManagedUsers().catch(() => undefined);
   }, [token]);
 
   useEffect(() => {
@@ -229,11 +259,18 @@ export const App = () => {
     setStatusMessage("Creating account");
 
     try {
+      if (password !== passwordConfirmation) {
+        setAuthError("Passwords do not match");
+        setStatusMessage("Signup failed");
+        return;
+      }
+
       const result = await signup(fullName, email, password);
       localStorage.setItem(TOKEN_STORAGE_KEY, result.token);
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(result.user));
       setToken(result.token);
       setUser(result.user);
+      setPasswordConfirmation("");
       setStatusMessage("Account created");
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : "Signup failed");
@@ -252,7 +289,69 @@ export const App = () => {
     setSelectedMonitoredPersonId("");
     setPairingCodeResult(null);
     setPassword("");
+    setPasswordConfirmation("");
     setStatusMessage("Signed out");
+  };
+
+  const handleChangePassword = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!token) {
+      return;
+    }
+
+    setSettingsError("");
+    setSettingsSuccess("");
+
+    if (newPassword !== newPasswordConfirmation) {
+      setSettingsError("New passwords do not match");
+      return;
+    }
+
+    try {
+      await changePassword(token, currentPassword, newPassword);
+      setCurrentPassword("");
+      setNewPassword("");
+      setNewPasswordConfirmation("");
+      setSettingsSuccess("Password updated");
+    } catch (error) {
+      setSettingsError(error instanceof Error ? error.message : "Password update failed");
+    }
+  };
+
+  const handleDeactivateUser = async (managedUserId: string) => {
+    if (!token) {
+      return;
+    }
+
+    setSettingsError("");
+    setSettingsSuccess("");
+
+    try {
+      await deactivateUser(token, managedUserId);
+      await refreshManagedUsers();
+      setSettingsSuccess("Account deactivated");
+    } catch (error) {
+      setSettingsError(error instanceof Error ? error.message : "Account deactivation failed");
+    }
+  };
+
+  const handleResetManagedUserPassword = async (managedUserId: string) => {
+    if (!token) {
+      return;
+    }
+
+    const passwordForUser = resetPasswords[managedUserId] ?? "";
+    setSettingsError("");
+    setSettingsSuccess("");
+
+    try {
+      await resetUserPassword(token, managedUserId, passwordForUser);
+      setResetPasswords((current) => ({ ...current, [managedUserId]: "" }));
+      setSettingsSuccess("Password reset");
+    } catch (error) {
+      setSettingsError(error instanceof Error ? error.message : "Password reset failed");
+    }
   };
 
   const handleCreateMonitoredPerson = async (event: FormEvent<HTMLFormElement>) => {
@@ -382,6 +481,19 @@ export const App = () => {
                 required
               />
             </label>
+            {isSignup ? (
+              <label>
+                Confirm password
+                <input
+                  value={passwordConfirmation}
+                  onChange={(event) => setPasswordConfirmation(event.target.value)}
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={8}
+                  required
+                />
+              </label>
+            ) : null}
             {authError ? <p className="form-error">{authError}</p> : null}
             <button type="submit">{isSignup ? "Create account" : "Sign in"}</button>
           </form>
@@ -416,6 +528,7 @@ export const App = () => {
           <a href="#monitoring">Live Monitoring</a>
           <a href="#alerts">Alerts</a>
           <a href="#events">Events</a>
+          <a href="#settings">Settings</a>
         </nav>
       </aside>
 
@@ -774,6 +887,115 @@ export const App = () => {
                 )}
               </tbody>
             </table>
+          </div>
+        </section>
+
+        <section className="settings-layout" id="settings">
+          <form className="panel settings-form" onSubmit={handleChangePassword}>
+            <div className="panel-header">
+              <h2>Account settings</h2>
+              <Settings aria-hidden="true" />
+            </div>
+            <div className="account-card">
+              <ShieldCheck aria-hidden="true" />
+              <div>
+                <strong>{user.fullName}</strong>
+                <span>{user.email}</span>
+                <small>{user.role}</small>
+              </div>
+            </div>
+            <label>
+              Current password
+              <input
+                value={currentPassword}
+                onChange={(event) => setCurrentPassword(event.target.value)}
+                type="password"
+                autoComplete="current-password"
+                required
+              />
+            </label>
+            <label>
+              New password
+              <input
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                type="password"
+                autoComplete="new-password"
+                minLength={8}
+                required
+              />
+            </label>
+            <label>
+              Confirm new password
+              <input
+                value={newPasswordConfirmation}
+                onChange={(event) => setNewPasswordConfirmation(event.target.value)}
+                type="password"
+                autoComplete="new-password"
+                minLength={8}
+                required
+              />
+            </label>
+            <button type="submit">Change password</button>
+            {settingsError ? <p className="form-error">{settingsError}</p> : null}
+            {settingsSuccess ? <p className="form-success">{settingsSuccess}</p> : null}
+          </form>
+
+          <div className="panel">
+            <div className="panel-header">
+              <h2>User management</h2>
+              {user.role === "ADMIN" ? (
+                <button type="button" onClick={() => void refreshManagedUsers()}>
+                  <RefreshCcw aria-hidden="true" />
+                  Refresh
+                </button>
+              ) : null}
+            </div>
+            {user.role === "ADMIN" ? (
+              <div className="user-management-list">
+                {managedUsers.map((managedUser) => (
+                  <article key={managedUser.id} className="managed-user-row">
+                    <div>
+                      <strong>{managedUser.fullName}</strong>
+                      <span>{managedUser.email}</span>
+                      <small>
+                        {managedUser.role} / {managedUser.isActive ? "Active" : "Inactive"}
+                      </small>
+                    </div>
+                    <div className="managed-user-actions">
+                      <input
+                        value={resetPasswords[managedUser.id] ?? ""}
+                        onChange={(event) =>
+                          setResetPasswords((current) => ({ ...current, [managedUser.id]: event.target.value }))
+                        }
+                        type="password"
+                        minLength={8}
+                        placeholder="New password"
+                        disabled={!managedUser.isActive}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => void handleResetManagedUserPassword(managedUser.id)}
+                        disabled={!managedUser.isActive || !(resetPasswords[managedUser.id] ?? "").trim()}
+                      >
+                        Reset password
+                      </button>
+                      <button
+                        className="danger-button"
+                        type="button"
+                        onClick={() => void handleDeactivateUser(managedUser.id)}
+                        disabled={!managedUser.isActive || managedUser.id === user.id}
+                      >
+                        <Trash2 aria-hidden="true" />
+                        Deactivate
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="empty-state">Sign in as an admin to view and deactivate demo accounts.</p>
+            )}
           </div>
         </section>
       </section>

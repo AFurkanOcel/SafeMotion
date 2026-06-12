@@ -154,6 +154,13 @@ label {
   font-size: 14px;
 }
 
+.form-success {
+  margin: 0;
+  color: #15803d;
+  font-size: 14px;
+  font-weight: 800;
+}
+
 .auth-switch {
   display: flex;
   align-items: center;
@@ -672,6 +679,114 @@ h2 {
   gap: 16px;
 }
 
+.settings-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.55fr) minmax(0, 1.45fr);
+  gap: 16px;
+}
+
+.settings-form {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.settings-form > button {
+  color: #ffffff;
+  background: #1261a6;
+  border-color: #1261a6;
+}
+
+.account-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #d7e5f2;
+  border-radius: 8px;
+  padding: 14px;
+  background: #f8fbff;
+}
+
+.account-card svg {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  color: #1261a6;
+}
+
+.account-card div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.account-card strong,
+.account-card span,
+.account-card small {
+  overflow-wrap: anywhere;
+}
+
+.account-card span,
+.account-card small {
+  color: #617995;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.user-management-list {
+  display: grid;
+  gap: 10px;
+  max-height: 520px;
+  overflow: auto;
+}
+
+.managed-user-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.85fr) minmax(360px, 1.15fr);
+  gap: 14px;
+  align-items: center;
+  border: 1px solid #e3edf7;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.managed-user-row > div:first-child {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.managed-user-row strong,
+.managed-user-row span,
+.managed-user-row small {
+  overflow-wrap: anywhere;
+}
+
+.managed-user-row span,
+.managed-user-row small {
+  color: #617995;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.managed-user-actions {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.danger-button {
+  color: #ffffff;
+  background: #b42318;
+  border-color: #b42318;
+}
+
+.danger-button:hover:not(:disabled) {
+  background: #961b12;
+  border-color: #961b12;
+}
+
 .panel {
   min-height: 180px;
   padding: 20px;
@@ -828,6 +943,7 @@ td small {
   .alert-banner,
   .pairing-layout,
   .people-layout,
+  .settings-layout,
   .workspace {
     align-items: stretch;
     grid-template-columns: 1fr;
@@ -850,6 +966,11 @@ td small {
   }
 
   .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .managed-user-row,
+  .managed-user-actions {
     grid-template-columns: 1fr;
   }
 }

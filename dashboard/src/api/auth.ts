@@ -12,3 +12,10 @@ export const signup = (fullName: string, email: string, password: string) =>
     method: "POST",
     body: JSON.stringify({ fullName, email, password })
   });
+
+export const changePassword = (token: string, currentPassword: string, newPassword: string) =>
+  apiRequest<{ status: string }>("/auth/me/password", {
+    method: "PATCH",
+    token,
+    body: JSON.stringify({ currentPassword, newPassword })
+  });
