@@ -41,9 +41,9 @@ The project focuses on a complete demo-ready workflow:
 - Alert creation, listing, live display, CSV export, and resolve workflow.
 - Swagger/OpenAPI documentation, logging, automated tests, and Docker Compose support.
 
-The dashboard brings the main monitoring workflow into a single operational view: selected monitored person, live status, sensor readings, events, alerts, and device pairing.
+The concept view summarizes SafeMotion as a connected safety workflow between a caregiver dashboard, a Node.js backend, a database, and a paired mobile phone.
 
-<img alt="SafeMotion Dashboard Overview" src="assets/screenshots/dashboard_overview.png" />
+<img alt="SafeMotion Concept Overview" src="assets/screenshots/safe_motion_concept.png" />
 
 ---
 
@@ -292,9 +292,9 @@ The login screen provides seeded demo account shortcuts so reviewers can test bo
 
 <img alt="SafeMotion Dashboard Login" src="assets/screenshots/dashboard_login.png" />
 
-Monitored person management lets caregivers create and select the person whose motion data will be monitored during the demo.
+The dashboard overview shows the main caregiver workspace, including the left navigation panel, live safety monitoring area, selected monitored person, and monitored person creation controls.
 
-<img alt="Monitored Person Management" src="assets/screenshots/monitored_person_management.png" />
+<img alt="SafeMotion Dashboard Overview" src="assets/screenshots/dashboard_overview.png" />
 
 The pairing panel generates a temporary code for the selected monitored person. The mobile app uses this code once to receive a device token.
 
