@@ -52,15 +52,28 @@ The screenshots below show the main SafeMotion workflow from dashboard login to 
 | --- | --- |
 | <img alt="Live Motion Readings and Events" src="assets/screenshots/live_motion_readings_and_events.png" /> | <img alt="Alert Workflow" src="assets/screenshots/alerts_workflow.png" /> |
 
-| Mobile Monitoring | Mobile Confirmation |
-| --- | --- |
-| <img width="360" alt="SafeMotion Mobile Monitoring" src="assets/screenshots/mobile_monitoring_screen.png" /> | <img width="360" alt="SafeMotion Mobile Confirmation" src="assets/screenshots/mobile_confirmation_screen.png" /> |
-
----
-
-### Backend Tests
-
-<img width="1000" alt="Backend Test Results" src="assets/screenshots/backend_tests.png" />
+<table>
+  <tr>
+    <th>Mobile Monitoring</th>
+    <th>Mobile Confirmation</th>
+  </tr>
+  <tr>
+    <td rowspan="3">
+      <img width="360" alt="SafeMotion Mobile Monitoring" src="assets/screenshots/mobile_monitoring_screen.png" />
+    </td>
+    <td>
+      <img width="360" alt="SafeMotion Mobile Confirmation" src="assets/screenshots/mobile_confirmation_screen.png" />
+    </td>
+  </tr>
+  <tr>
+    <th>Backend Tests</th>
+  </tr>
+  <tr>
+    <td>
+      <img alt="Backend Test Results" src="assets/screenshots/backend_tests.png" />
+    </td>
+  </tr>
+</table>
 
 | Admin User Management |
 | --- |
