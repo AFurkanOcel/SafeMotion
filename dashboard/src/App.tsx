@@ -278,6 +278,15 @@ export const App = () => {
     }
   };
 
+  const fillDemoCredentials = (role: "admin" | "caregiver") => {
+    setAuthMode("signin");
+    setAuthError("");
+    setPasswordConfirmation("");
+    setEmail(role === "admin" ? "admin@example.com" : "caregiver@example.com");
+    setPassword("StrongPassword123!");
+    setStatusMessage(`${role === "admin" ? "Admin" : "Caregiver"} demo credentials filled`);
+  };
+
   const handleLogout = () => {
     localStorage.removeItem(TOKEN_STORAGE_KEY);
     localStorage.removeItem(USER_STORAGE_KEY);
@@ -539,6 +548,20 @@ export const App = () => {
             {authError ? <p className="form-error">{authError}</p> : null}
             <button type="submit">{isSignup ? "Create account" : "Sign in"}</button>
           </form>
+          {isSignup ? (
+            <p className="demo-login-note">Public signup creates caregiver accounts only. Use the seeded admin account for admin features.</p>
+          ) : (
+            <div className="demo-login-actions" aria-label="Demo accounts">
+              <button type="button" onClick={() => fillDemoCredentials("caregiver")}>
+                <Users />
+                Use caregiver demo
+              </button>
+              <button type="button" onClick={() => fillDemoCredentials("admin")}>
+                <ShieldCheck />
+                Use admin demo
+              </button>
+            </div>
+          )}
           <p className="auth-switch">
             {isSignup ? "Already have an account?" : "Don't have an account?"}
             <button
