@@ -1,9 +1,8 @@
-# SafeMotion
+<h1 align="center">SafeMotion</h1>
 
 <p align="center">
   <img width="92" alt="SafeMotion icon" src="assets/icons/safemotion_icon.png" />
 </p>
-
 <p align="center">
 Fall and inactivity monitoring platform with mobile sensor collection, real-time caregiver dashboard, alerts, and device-token authorization.
 </p>
