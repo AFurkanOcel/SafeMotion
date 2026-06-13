@@ -14,7 +14,6 @@ Fall and inactivity monitoring platform with mobile sensor collection, real-time
   <img src="https://img.shields.io/badge/Mobile-React%20Native-61DAFB"/>
   <img src="https://img.shields.io/badge/Database-PostgreSQL-336791"/>
   <img src="https://img.shields.io/badge/ORM-Prisma-2D3748"/>
-  <img src="https://img.shields.io/badge/Auth-JWT-orange"/>
   <img src="https://img.shields.io/badge/Realtime-Socket.IO-black"/>
   <img src="https://img.shields.io/badge/API-Swagger-brightgreen"/>
   <img src="https://img.shields.io/badge/Deployment-Docker%20Compose-2496ED"/>
